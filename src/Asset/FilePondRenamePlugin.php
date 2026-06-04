@@ -29,7 +29,7 @@ final class FilePondRenamePlugin extends AssetBundle
     /**
      * {@inheritDoc}
      *
-     * @phpstan-var array<array-key, mixed>
+     * @phpstan-var array<class-string>
      */
     public $depends = [
         FilePondAsset::class,

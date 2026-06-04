@@ -131,6 +131,39 @@ final class AssetTest extends TestCase
         );
     }
 
+    public function testCropperJsAssetRegister(): void
+    {
+        $this->assertEmpty($this->view->assetBundles);
+
+        Asset\CropperJsAsset::register($this->view);
+
+        $this->assertCount(1, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\CropperJsAsset::class, $this->view->assetBundles);
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => '']);
+
+        $this->assertStringContainsString('/dist/cropper.js', $result);
+    }
+
+    public function testCropperJsAssetCdnRegister(): void
+    {
+        $this->assertEmpty($this->view->assetBundles);
+
+        Asset\Cdn\CropperJsAsset::register($this->view);
+
+        $this->assertCount(1, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\Cdn\CropperJsAsset::class, $this->view->assetBundles);
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => '']);
+
+        $this->assertStringContainsString(
+            <<<HTML
+            <script src="https://unpkg.com/cropperjs@2.1.0/dist/cropper.min.js"></script>
+            HTML,
+            $result,
+        );
+    }
+
     public function testFilePondImageCropPluginSimpleDependency(): void
     {
         $this->assertEmpty($this->view->assetBundles);
@@ -265,6 +298,147 @@ final class AssetTest extends TestCase
         $this->assertArrayHasKey(Asset\FilePondValidateSizePlugin::class, $this->view->assetBundles);
         $this->assertArrayHasKey(Asset\FilePondValidateTypePlugin::class, $this->view->assetBundles);
         $this->assertArrayHasKey(Asset\FilePondImageTransformPlugin::class, $this->view->assetBundles);
+    }
+
+    public function testFilePondImageEditPluginSimpleDependency(): void
+    {
+        $this->assertEmpty($this->view->assetBundles);
+
+        Asset\FilePondImageEditPlugin::register($this->view);
+
+        $this->assertCount(7, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\FilePondAsset::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\FilePondEncodePlugin::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\FilePondImageEditPlugin::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\FilePondImageExifOrientationPlugin::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\FilePondImagePreviewPlugin::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\FilePondValidateSizePlugin::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\FilePondValidateTypePlugin::class, $this->view->assetBundles);
+    }
+
+    public function testFilePondImageEditPluginRegister(): void
+    {
+        $this->assertEmpty($this->view->assetBundles);
+
+        Asset\FilePondImageEditPlugin::register($this->view);
+
+        $this->assertCount(7, $this->view->assetBundles);
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => '']);
+
+        $this->assertStringContainsString('/dist/filepond-plugin-image-preview.css', $result);
+        $this->assertStringContainsString('/dist/filepond.css', $result);
+        $this->assertStringContainsString('/dist/filepond-plugin-file-encode.js', $result);
+        $this->assertStringContainsString('/dist/filepond-plugin-image-edit.css', $result);
+        $this->assertStringContainsString('/dist/filepond-plugin-image-edit.js', $result);
+        $this->assertStringContainsString('/dist/filepond-plugin-image-exif-orientation.js', $result);
+        $this->assertStringContainsString('/dist/filepond-plugin-image-preview.js', $result);
+        $this->assertStringContainsString('/dist/filepond-plugin-file-validate-size.js', $result);
+        $this->assertStringContainsString('/dist/filepond-plugin-file-validate-type.js', $result);
+        $this->assertStringContainsString('/dist/filepond.js', $result);
+    }
+
+    public function testFilePondImageEditPluginCdnSimpleDependency(): void
+    {
+        $this->assertEmpty($this->view->assetBundles);
+
+        Asset\Cdn\FilePondImageEditPlugin::register($this->view);
+
+        $this->assertCount(7, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\FilePondCdnAsset::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\Cdn\FilePondEncodePlugin::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\Cdn\FilePondImageEditPlugin::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\Cdn\FilePondImageExifOrientationPlugin::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\Cdn\FilePondImagePreviewPlugin::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\Cdn\FilePondValidateSizePlugin::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\Cdn\FilePondValidateTypePlugin::class, $this->view->assetBundles);
+    }
+
+    public function testFilePondImageEditPluginCdnRegister(): void
+    {
+        $this->assertEmpty($this->view->assetBundles);
+
+        Asset\Cdn\FilePondImageEditPlugin::register($this->view);
+
+        $this->assertCount(7, $this->view->assetBundles);
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => '']);
+
+        $this->assertStringContainsString(
+            <<<HTML
+            <link href="https://unpkg.com/filepond-plugin-image-edit@^1.6.3/dist/filepond-plugin-image-edit.min.css" rel="stylesheet">
+            HTML,
+            $result,
+        );
+        $this->assertStringContainsString(
+            <<<HTML
+            <script src="https://unpkg.com/filepond-plugin-image-edit@^1.6.3/dist/filepond-plugin-image-edit.min.js"></script>
+            HTML,
+            $result,
+        );
+    }
+
+    public function testFilePondCropperAssetSimpleDependency(): void
+    {
+        $this->assertEmpty($this->view->assetBundles);
+
+        Asset\FilePondCropperAsset::register($this->view);
+
+        $this->assertCount(9, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\CropperJsAsset::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\FilePondAsset::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\FilePondCropperAsset::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\FilePondImageEditPlugin::class, $this->view->assetBundles);
+    }
+
+    public function testFilePondCropperAssetRegister(): void
+    {
+        $this->assertEmpty($this->view->assetBundles);
+
+        Asset\FilePondCropperAsset::register($this->view);
+
+        $this->assertCount(9, $this->view->assetBundles);
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => '']);
+
+        $this->assertStringContainsString('/dist/cropper.js', $result);
+        $this->assertStringContainsString('/dist/filepond-plugin-image-edit.css', $result);
+        $this->assertStringContainsString('/dist/filepond-plugin-image-edit.js', $result);
+        $this->assertStringContainsString('/filepond-cropper.css', $result);
+        $this->assertStringContainsString('/filepond-cropper.js', $result);
+    }
+
+    public function testFilePondCropperCdnAssetRegister(): void
+    {
+        $this->assertEmpty($this->view->assetBundles);
+
+        Asset\FilePondCropperCdnAsset::register($this->view);
+
+        $this->assertCount(9, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\Cdn\CropperJsAsset::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\FilePondCdnAsset::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\FilePondCropperCdnAsset::class, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\Cdn\FilePondImageEditPlugin::class, $this->view->assetBundles);
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => '']);
+
+        $this->assertStringContainsString(
+            <<<HTML
+            <script src="https://unpkg.com/cropperjs@2.1.0/dist/cropper.min.js"></script>
+            HTML,
+            $result,
+        );
+        $this->assertStringContainsString('/filepond-cropper.css', $result);
+        $this->assertStringContainsString('/filepond-cropper.js', $result);
+    }
+
+    public function testFilePondCropperAdapterUsesCropperV2CanvasApi(): void
+    {
+        $adapter = file_get_contents(dirname(__DIR__) . '/src/Asset/filepond-cropper/filepond-cropper.js');
+
+        $this->assertIsString($adapter);
+        $this->assertStringContainsString('$toCanvas', $adapter);
+        $this->assertStringNotContainsString('getCroppedCanvas', $adapter);
     }
 
     public function testFilePondImageTransformPluginRegister(): void

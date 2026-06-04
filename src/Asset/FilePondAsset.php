@@ -32,7 +32,7 @@ final class FilePondAsset extends AssetBundle
     /**
      * {@inheritdoc}
      *
-     * @phpstan-var array<array-key, mixed>
+     * @phpstan-var array<class-string>
      */
     public $depends = [
         FilePondEncodePlugin::class,

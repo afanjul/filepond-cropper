@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Yii2\Extensions\FilePond\Tests;
 
-use PHPForge\Support\Assert;
+use PHPForge\Support\DirectoryCleaner;
 use Yii;
 use yii\di\Container;
 use yii\i18n\PhpMessageSource;
@@ -68,6 +68,6 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
     {
         Yii::$app = null;
         Yii::$container = new Container();
-        Assert::removeFilesFromDirectory(__DIR__ . '/Support/runtime');
+        DirectoryCleaner::clean(__DIR__ . '/Support/runtime');
     }
 }

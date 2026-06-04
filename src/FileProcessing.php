@@ -23,7 +23,7 @@ final class FileProcessing
     public static function saveWithReturningfile(
         array $files,
         string $path,
-        string $newFileName = null,
+        string|null $newFileName = null,
         bool $withPath = true,
     ): string {
         $savedFiles = self::processFiles($files, $path, $newFileName, $withPath);
@@ -39,7 +39,7 @@ final class FileProcessing
     private static function processFiles(
         array $files,
         string $path,
-        string $newFileName = null,
+        string|null $newFileName = null,
         bool $withPath = true
     ): array {
         $savedFiles = [];

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Yii2\Extensions\FilePond;
 
-use JsonException;
 use UIAwesome\Html\{FormControl\Input\File, Helper\CssClass, Helper\Utils};
+use Yii2\Extensions\FilePond\Asset;
 use Yii2\Extensions\FilePond\Asset\{FilePondAsset, FilePondCdnAsset};
 use Yii;
+use yii\helpers\Json;
+use yii\web\JsExpression;
 use yii\widgets\InputWidget;
 
 final class FilePond extends InputWidget
@@ -17,6 +19,7 @@ final class FilePond extends InputWidget
     public bool $allowFileRename = false;
     public bool $allowFileValidateSize = true;
     public bool $allowImageCrop = false;
+    public bool $allowImageEdit = false;
     public bool $allowImageExifOrientation = true;
     public bool $allowImagePreview = true;
     public bool $allowImageTransform = false;
@@ -25,6 +28,13 @@ final class FilePond extends InputWidget
     public string $cssClass = '';
     public bool $cdn = false;
     public array $config = [];
+    public string|null $cropperAspectRatio = null;
+    public string $cropperModalTitle = 'Edit image';
+    public array $cropperOptions = [];
+    public string|null $cropperOutputMimeType = null;
+    public int|float|null $cropperOutputQuality = null;
+    public string $cropperCancelLabel = 'Cancel';
+    public string $cropperConfirmLabel = 'Apply';
     public string $fileRename = '';
     /**
      * @var string The file validate type detect type function.
@@ -43,6 +53,8 @@ final class FilePond extends InputWidget
     public string $fileValidateTypeDetectType = '';
     public string $fileValidateTypeLabelExpectedTypes = '';
     public string|null $imageCropAspectRatio = null;
+    public bool $imageEditAllowEdit = true;
+    public bool $imageEditInstantEdit = false;
     /**
      * @var string The image preview height.
      *
@@ -107,6 +119,7 @@ final class FilePond extends InputWidget
      * A number between 0 and 100 indicating image quality (e.g. 92 => 92%).
      */
     public int|null $imageTransformOutputQuality = null;
+    public string|null $imageTransformOutputMimeType = null;
     /**
      * @var array The image transform client transforms.
      *
@@ -184,6 +197,7 @@ final class FilePond extends InputWidget
                 'allowFileTypeValidation' => $this->allowFileTypeValidation,
                 'allowFileValidateSize' => $this->allowFileValidateSize,
                 'allowImageCrop' => $this->allowImageCrop,
+                'allowImageEdit' => $this->allowImageEdit,
                 'allowImageExifOrientation' => $this->allowImageExifOrientation,
                 'allowImagePreview' => $this->allowImagePreview,
                 'allowImageTransform' => $this->allowImageTransform,
@@ -194,22 +208,26 @@ final class FilePond extends InputWidget
                     'Expects {allButLastType} or {lastType}',
                 ),
                 'imageCropAspectRatio' => $this->imageCropAspectRatio,
+                'imageEditAllowEdit' => $this->imageEditAllowEdit,
+                'imageEditInstantEdit' => $this->imageEditInstantEdit,
                 'imagePreviewHeight' => $this->imagePreviewHeight,
                 'imagePreviewMarkupShow' => $this->imagePreviewMarkupShow,
                 'imagePreviewMaxFileSize' => $this->imagePreviewMaxFileSize,
                 'imagePreviewMaxHeight' => $this->imagePreviewMaxHeight,
-                'imagePreviewMaxInstantPreviewFileSize' => $this->imagePreviewMaxFileSize,
+                'imagePreviewMaxInstantPreviewFileSize' => $this->imagePreviewMaxInstantPreviewFileSize,
                 'imagePreviewMinHeight' => $this->imagePreviewMinHeight,
                 'imagePreviewTransparencyIndicator' => $this->imagePreviewTransparencyIndicator,
                 'imageTransformAfterCreateBlob' => $this->imageTransformAfterCreateBlob,
                 'imageTransformBeforeCreateBlob' => $this->imageTransformBeforeCreateBlob,
                 'imageTransformClientTransforms' => $this->imageTransformClientTransforms,
+                'imageTransformOutputMimeType' => $this->imageTransformOutputMimeType ?? $this->cropperOutputMimeType,
                 'imageTransformOutputQuality' => $this->imageTransformOutputQuality,
-                'imageTransformOutputQualityMode' => $this->imageTransformOutputQuality,
+                'imageTransformOutputQualityMode' => $this->imageTransformOutputQualityMode,
                 'imageTransformOutputStripImageHead' => $this->imageTransformOutputStripImageHead,
                 'imageTransformVariants' => $this->imageTransformVariants,
                 'imageTransformVariantsDefaultName' => $this->imageTransformVariantsDefaultName,
-                'imageTransformVariantsIncludeOriginal' => $this->imageTransformVariantsIncludeDefault,
+                'imageTransformVariantsIncludeDefault' => $this->imageTransformVariantsIncludeDefault,
+                'imageTransformVariantsIncludeOriginal' => $this->imageTransformVariantsIncludeOriginal,
                 'labelFileTypeNotAllowed' => Yii::t('yii.filepond', 'File type not allowed'),
                 'labelIdle' => $this->labelIdle === ''
                     ? Yii::t(
@@ -232,6 +250,16 @@ final class FilePond extends InputWidget
             $this->config,
         );
 
+        $this->registerOptionalPlugins();
+
+        if ($this->allowImageEdit && array_key_exists('imageEditEditor', $this->config) === false) {
+            $this->config['imageEditEditor'] = $this->createImageEditEditorExpression();
+        }
+
+        if ($this->cropperOutputQuality !== null && $this->config['imageTransformOutputQuality'] === null) {
+            $this->config['imageTransformOutputQuality'] = $this->normalizeOutputQuality($this->cropperOutputQuality);
+        }
+
         $this->id = $this->hasModel()
             ? Utils::generateInputId($this->model->formName(), $this->attribute)
             : $this->getId() . '-filepond';
@@ -244,27 +272,28 @@ final class FilePond extends InputWidget
         return $this->renderInputFile();
     }
 
-    /**
-     * @throws JsonException
-     */
     private function getScript(): string
     {
-        $closure = $this->fileRename;
+        $inlineOptions = trim($this->fileRename);
 
         if ($this->fileValidateTypeDetectType !== '') {
-            $closure = "{$this->fileValidateTypeDetectType} {$closure}";
+            $inlineOptions = trim("{$this->fileValidateTypeDetectType} {$inlineOptions}");
         }
 
-        $loadFileDefault = $this->loadFileDefault;
+        $id = Json::htmlEncode($this->id);
+        $loadFileDefault = Json::htmlEncode($this->loadFileDefault);
         $pluginConfig = implode(', ', $this->pluginDefault);
-        $setOptions = json_encode($this->config, JSON_THROW_ON_ERROR);
+        $filePondOptions = Json::htmlEncode($this->config);
+        $mergeInlineOptions = $inlineOptions === '' ? '' : "Object.assign(filePondOptions, {{$inlineOptions}})\n";
 
         return <<<JS
         FilePond.registerPlugin($pluginConfig)
-        FilePond.setOptions($setOptions)
 
-        const loadFileDefault = "$loadFileDefault"
-        const pond = FilePond.create(document.querySelector('input[type="file"][id="$this->id"]'), {$closure})
+        var filePondOptions = $filePondOptions
+        $mergeInlineOptions
+        var loadFileDefault = $loadFileDefault
+        var filePondInput = document.getElementById($id)
+        var pond = FilePond.create(filePondInput, filePondOptions)
 
         if (loadFileDefault !== '') {
             pond.addFiles(loadFileDefault)
@@ -281,7 +310,102 @@ final class FilePond extends InputWidget
             default => FilePondAsset::register($view),
         };
 
+        $this->registerOptionalPluginAssets();
+
         $view->registerJs($this->getScript());
+    }
+
+    private function createImageEditEditorExpression(): JsExpression
+    {
+        $cropperOptions = Json::htmlEncode(
+            [
+                'cancelLabel' => $this->cropperCancelLabel,
+                'confirmLabel' => $this->cropperConfirmLabel,
+                'cropperAspectRatio' => $this->cropperAspectRatio ?? $this->imageCropAspectRatio,
+                'cropperOptions' => $this->cropperOptions,
+                'modalTitle' => $this->cropperModalTitle,
+            ],
+        );
+
+        return new JsExpression("Yii2FilePondCropper.createEditor($cropperOptions)");
+    }
+
+    private function normalizeOutputQuality(int|float $quality): int
+    {
+        $normalizedQuality = (int) round($quality);
+
+        if ($quality <= 1) {
+            $normalizedQuality = (int) round($quality * 100);
+        }
+
+        return min(100, max(0, $normalizedQuality));
+    }
+
+    private function registerOptionalPluginAssets(): void
+    {
+        $view = $this->getView();
+
+        if ($this->allowFileRename) {
+            match ($this->cdn) {
+                true => Asset\Cdn\FilePondRenamePlugin::register($view),
+                default => Asset\FilePondRenamePlugin::register($view),
+            };
+        }
+
+        if ($this->allowImageCrop) {
+            match ($this->cdn) {
+                true => Asset\Cdn\FilePondImageCropPlugin::register($view),
+                default => Asset\FilePondImageCropPlugin::register($view),
+            };
+        }
+
+        if ($this->allowImageEdit) {
+            match ($this->cdn) {
+                true => Asset\FilePondCropperCdnAsset::register($view),
+                default => Asset\FilePondCropperAsset::register($view),
+            };
+        }
+
+        if ($this->allowImageTransform) {
+            match ($this->cdn) {
+                true => Asset\Cdn\FilePondImageTransformPlugin::register($view),
+                default => Asset\FilePondImageTransformPlugin::register($view),
+            };
+        }
+
+        if ($this->allowPdfPreview) {
+            match ($this->cdn) {
+                true => Asset\Cdn\FilePondPdfPreviewPlugin::register($view),
+                default => Asset\FilePondPdfPreviewPlugin::register($view),
+            };
+        }
+    }
+
+    private function registerOptionalPlugins(): void
+    {
+        $plugins = [];
+
+        if ($this->allowFileRename) {
+            $plugins[] = 'FilePondPluginFileRename';
+        }
+
+        if ($this->allowImageCrop) {
+            $plugins[] = 'FilePondPluginImageCrop';
+        }
+
+        if ($this->allowImageEdit) {
+            $plugins[] = 'FilePondPluginImageEdit';
+        }
+
+        if ($this->allowImageTransform) {
+            $plugins[] = 'FilePondPluginImageTransform';
+        }
+
+        if ($this->allowPdfPreview) {
+            $plugins[] = 'FilePondPluginPdfPreview';
+        }
+
+        $this->pluginDefault = array_values(array_unique(array_merge($this->pluginDefault, $plugins)));
     }
 
     /**

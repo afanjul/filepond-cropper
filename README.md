@@ -49,7 +49,7 @@ to the require-dev section of your `composer.json` file.
 ### Name
 
 ```php
-use Yii2\Extensions\Filepond\FilePond;
+use Yii2\Extensions\FilePond\FilePond;
 
 echo FilePond::widget(['name' => 'image_file']);
 ```
@@ -57,7 +57,7 @@ echo FilePond::widget(['name' => 'image_file']);
 ### Active Field 
 
 ```php
-use Yii2\Extensions\Filepond\FilePond;
+use Yii2\Extensions\FilePond\FilePond;
 
 echo $form
     ->field($formModel, 'image_file')
@@ -71,10 +71,40 @@ echo $form
     );
 ```
 
+### Account logo with Cropper.js
+
+```php
+use Yii2\Extensions\FilePond\FilePond;
+
+echo $form
+    ->field($formModel, 'logo_file')
+    ->widget(
+        FilePond::class,
+        [
+            'acceptedFileTypes' => ['image/png', 'image/jpeg', 'image/webp'],
+            'allowImageEdit' => true,
+            'allowImagePreview' => true,
+            'allowImageTransform' => true,
+            'cropperOutputMimeType' => 'image/png',
+            'cropperOutputQuality' => 0.92,
+            'imageCropAspectRatio' => '1:1',
+            'maxFiles' => 1,
+            'maxFileSize' => '2MB',
+        ],
+    );
+```
+
+Image editing uses FilePond's Image Edit plugin with Cropper.js v2. The editor stores crop metadata and FilePond's
+Image Transform plugin applies that metadata before the encoded form value is submitted, so enable
+`allowImageTransform` when the submitted image must be cropped or normalized.
+
+Client-side checks are convenience only. The receiving controller/model must validate MIME type, file size,
+dimensions, and decoded content, and should normalize stored images to the formats your renderers support.
+
 ### Controller or Model
 
 ```php
-use Yii2\Extensions\Filepond\FileProcessing;
+use Yii2\Extensions\FilePond\FileProcessing;
 
 $imageFile = FileProcessing::saveWithReturningFile(
     $categoryForm->image_file,
@@ -93,19 +123,29 @@ $imageFile = FileProcessing::saveWithReturningFile(
 | `allowFileRename`                       | `bool`        | Whether to allow file rename.                                              | `false`                                 |
 | `allowFileValidateSize`                 | `bool`        | Whether to allow file size validation.                                     | `true`                                  |
 | `allowImageCrop`                        | `bool`        | Whether to allow image crop.                                               | `false`                                 |
+| `allowImageEdit`                        | `bool`        | Whether to allow image editing with FilePond Image Edit and Cropper.js.    | `false`                                 |
 | `allowImageExifOrientation`             | `bool`        | Whether to allow image exif orientation.                                   | `true`                                  |   
 | `allowImagePreview`                     | `bool`        | Whether to allow image preview.                                            | `true`                                  |
 | `allowImageTransform`                   | `bool`        | Whether to allow image transform.                                          | `false`                                 |
 | `allowMultiple`                         | `bool`        | Whether to allow multiple files.                                           | `false`                                 |
-| `allowpdfPreview`                       | `bool`        | Whether to allow pdf preview.                                              | `false`                                 |
+| `allowPdfPreview`                       | `bool`        | Whether to allow pdf preview.                                              | `false`                                 |
 | `cssClass`                              | `string`      | The css class of the widget.                                               | `''`                                    |
-| `cdn`                                   | `boolean`     | Whether to use the CDN.                                                    | `true`                                  |
+| `cdn`                                   | `boolean`     | Whether to use the CDN.                                                    | `false`                                 |
 | `config`                                | `array`       | The config of the widget.                                                  | `[]`                                    |
+| `cropperAspectRatio`                    | `string,null` | Cropper aspect ratio. Falls back to `imageCropAspectRatio`.                | `null`                                  |
+| `cropperModalTitle`                     | `string`      | The Cropper.js modal title.                                                | `Edit image`                            |
+| `cropperOptions`                        | `array`       | Cropper.js v2 options passed to `new Cropper()`.                           | `[]`                                    |
+| `cropperOutputMimeType`                 | `string,null` | Output MIME type passed to Image Transform, for example `image/png`.       | `null`                                  |
+| `cropperOutputQuality`                  | `int,float`   | Output quality, either `0..1` or `1..100`; used when transform quality is unset. | `null`                            |
+| `cropperCancelLabel`                    | `string`      | The Cropper.js cancel button label.                                        | `Cancel`                                |
+| `cropperConfirmLabel`                   | `string`      | The Cropper.js confirm button label.                                       | `Apply`                                 |
 | `fileRename`                            | `string`      | The file rename.                                                           | `''`                                    |
 |                                         |               | use: `fileRenameFunction: (file) => return `my_new_name${file.extension}`; |                                         |
 | `fileValidateTypeDetectType`            | `string`      | The file validate type detect type function.                               | `''`                                    |
 | `fileValidateTypeLabelExpectedTypes`    | `string`      | The file validate type label expected types.                               | `''`                                    |
 | `imageCropAspectRatio`                  | `string,null` | The image crop aspect ratio.                                               | `null`                                  |
+| `imageEditAllowEdit`                    | `bool`        | Whether to show the manual image edit button.                              | `true`                                  |
+| `imageEditInstantEdit`                  | `bool`        | Whether to open the editor immediately when an image is added.             | `false`                                 |
 | `imagePreviewHeight`                    | `string,null` | The image preview height.                                                  | `null`                                  |
 | `imagePreviewMarkupShow`                | `bool`        | Whether to show the image preview markup.                                  | `true`                                  |
 | `imagePreviewMaxFileSize`               | `string,null` | The image preview max file size.                                           | `null`                                  |
@@ -116,8 +156,9 @@ $imageFile = FileProcessing::saveWithReturningFile(
 | `imageTransformAfterCreateBlob`         | `array,null`  | The image transform after create blob.                                     | `null`                                  |
 | `imageTransformBeforeCreateBlob`        | `array,null`  | The image transform before create blob.                                    | `null`                                  |
 | `imageTransformOutputQuality`           | `int,null`    | The image transform output quality.                                        | `null`                                  |
+| `imageTransformOutputMimeType`          | `string,null` | The image transform output MIME type.                                      | `null`                                  |
 | `imageTransformClientTransforms`        | `array,null`  | The image transform client transforms.                                     | `null`                                  |
-| `imageTransformOutputQualityMode`       | `string,null` | The image transform output quality mode.                                   | `añways`                                |
+| `imageTransformOutputQualityMode`       | `string`      | The image transform output quality mode.                                   | `always`                                |
 | `imageTransformOutputStripImageHead`    | `bool`        | The image transform output strip image head.                               | `true`                                  |
 | `imageTransformVariants`                | `array,null`  | The image transform variants.                                              | `null`                                  |
 | `imageTransformVariantsIncludeDefault`  | `bool`        | The image transform variants include default.                              | `true`                                  |

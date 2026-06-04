@@ -144,7 +144,7 @@ final class RenderTest extends TestCase
         $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => $filePond]);
 
         $this->assertStringContainsString(
-            '"labelIdle":"Drag & Drop or <span class=\"filepond--label-action\"> Browse <\/span>"',
+            '"labelIdle":"Drag \u0026 Drop or \u003Cspan class=\u0022filepond--label-action\u0022\u003E Browse \u003C\/span\u003E"',
             $result,
         );
     }
@@ -179,7 +179,7 @@ final class RenderTest extends TestCase
 
         $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => $filePond]);
 
-        $this->assertStringContainsString('input[type="file"][id="w0-filepond"]', $result);
+        $this->assertStringContainsString('document.getElementById("w0-filepond")', $result);
     }
 
     public function testNotClassFormControl(): void
@@ -263,21 +263,68 @@ final class RenderTest extends TestCase
         $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => $filePond]);
 
         $this->assertStringContainsString(
-            <<<JS
-            <script>jQuery(function ($) {
-            FilePond.registerPlugin(FilePondPluginFileEncode, FilePondPluginFileValidateSize, FilePondPluginFileValidateType, FilePondPluginImageExifOrientation, FilePondPluginImagePreview)
-            FilePond.setOptions({"acceptedFileTypes":[],"allowFileRename":false,"allowFileTypeValidation":true,"allowFileValidateSize":true,"allowImageCrop":false,"allowImageExifOrientation":true,"allowImagePreview":true,"allowImageTransform":false,"allowMultiple":false,"className":"","fileValidateTypeLabelExpectedTypes":"Expects {allButLastType} or {lastType}","imageCropAspectRatio":null,"imagePreviewHeight":null,"imagePreviewMarkupShow":true,"imagePreviewMaxFileSize":null,"imagePreviewMaxHeight":256,"imagePreviewMaxInstantPreviewFileSize":null,"imagePreviewMinHeight":44,"imagePreviewTransparencyIndicator":null,"imageTransformAfterCreateBlob":null,"imageTransformBeforeCreateBlob":null,"imageTransformClientTransforms":null,"imageTransformOutputQuality":null,"imageTransformOutputQualityMode":null,"imageTransformOutputStripImageHead":true,"imageTransformVariants":null,"imageTransformVariantsDefaultName":null,"imageTransformVariantsIncludeOriginal":true,"labelFileTypeNotAllowed":"File type not allowed","labelIdle":"Drag & Drop your files or <span class=\"filepond--label-action\"> Browse <\/span>","labelMaxFileSize":"Maximum file size is {filesize}","labelMaxFileSizeExceeded":"File is too large","labelMaxTotalFileSize":"Maximum total file size is {filesize}","labelMaxTotalFileSizeExceeded":"Maximum total size exceeded","maxFiles":1,"maxFileSize":null,"maxTotalFileSize":null,"minFileSize":null,"pdfPreviewHeight":320,"pdfComponentExtraParams":"toolbar=0&view=fit&page=1","required":false})
-
-            const loadFileDefault = ""
-            const pond = FilePond.create(document.querySelector('input[type="file"][id="testform-array"]'), )
-
-            if (loadFileDefault !== '') {
-                pond.addFiles(loadFileDefault)
-            }
-            });</script>
-            JS,
+            'FilePond.registerPlugin(FilePondPluginFileEncode, FilePondPluginFileValidateSize, FilePondPluginFileValidateType, FilePondPluginImageExifOrientation, FilePondPluginImagePreview)',
             $result,
         );
+        $this->assertStringContainsString('var filePondOptions = {', $result);
+        $this->assertStringContainsString('"allowImageEdit":false', $result);
+        $this->assertStringContainsString('"imagePreviewMaxInstantPreviewFileSize":1000000', $result);
+        $this->assertStringContainsString('"imageTransformOutputQualityMode":"always"', $result);
+        $this->assertStringContainsString('var filePondInput = document.getElementById("testform-array")', $result);
+        $this->assertStringContainsString('var pond = FilePond.create(filePondInput, filePondOptions)', $result);
+        $this->assertStringNotContainsString('FilePond.setOptions', $result);
+        $this->assertStringNotContainsString('const pond', $result);
+    }
+
+    public function testImageEditWithCropper(): void
+    {
+        $filePond = FilePond::widget(
+            [
+                'acceptedFileTypes' => ['image/png', 'image/jpeg', 'image/webp'],
+                'allowImageEdit' => true,
+                'allowImageTransform' => true,
+                'attribute' => 'array',
+                'cropperOutputMimeType' => 'image/png',
+                'cropperOutputQuality' => 0.92,
+                'imageCropAspectRatio' => '1:1',
+                'maxFileSize' => '2MB',
+                'model' => new TestForm(),
+            ],
+        );
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => $filePond]);
+
+        $this->assertStringContainsString('FilePondPluginImageEdit', $result);
+        $this->assertStringContainsString('FilePondPluginImageTransform', $result);
+        $this->assertStringContainsString('/dist/filepond-plugin-image-edit.css', $result);
+        $this->assertStringContainsString('/dist/filepond-plugin-image-edit.js', $result);
+        $this->assertStringContainsString('/dist/filepond-plugin-image-transform.js', $result);
+        $this->assertStringContainsString('/dist/cropper.js', $result);
+        $this->assertStringContainsString('/filepond-cropper.css', $result);
+        $this->assertStringContainsString('/filepond-cropper.js', $result);
+        $this->assertStringContainsString('"allowImageEdit":true', $result);
+        $this->assertStringContainsString('"imageEditAllowEdit":true', $result);
+        $this->assertStringContainsString('"imageEditInstantEdit":false', $result);
+        $this->assertStringContainsString('"imageTransformOutputMimeType":"image\/png"', $result);
+        $this->assertStringContainsString('"imageTransformOutputQuality":92', $result);
+        $this->assertStringContainsString(
+            '"imageEditEditor":Yii2FilePondCropper.createEditor({"cancelLabel":"Cancel","confirmLabel":"Apply","cropperAspectRatio":"1:1"',
+            $result,
+        );
+    }
+
+    public function testMultipleWidgetsDoNotEmitCollidingConstPond(): void
+    {
+        $first = FilePond::widget(['name' => 'first']);
+        $second = FilePond::widget(['name' => 'second']);
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => $first . $second]);
+
+        $this->assertStringContainsString('document.getElementById("w0-filepond")', $result);
+        $this->assertStringContainsString('document.getElementById("w1-filepond")', $result);
+        $this->assertSame(2, substr_count($result, 'var pond = FilePond.create(filePondInput, filePondOptions)'));
+        $this->assertStringNotContainsString('const pond', $result);
+        $this->assertStringNotContainsString('FilePond.setOptions', $result);
     }
 
     public function testRequired(): void

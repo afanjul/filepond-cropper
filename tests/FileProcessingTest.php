@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Yii2\Extensions\FilePond\Tests;
 
 use JsonException;
-use PHPForge\Support\Assert;
+use PHPForge\Support\DirectoryCleaner;
 use Yii2\Extensions\FilePond\FileProcessing;
 
 use function json_encode;
@@ -16,7 +16,7 @@ final class FileProcessingTest extends TestCase
     {
         parent::tearDown();
 
-        Assert::removeFilesFromDirectory(__DIR__ . '/Support/runtime/');
+        DirectoryCleaner::clean(__DIR__ . '/Support/runtime/');
     }
 
     /**
