@@ -6,6 +6,7 @@ namespace Yii2\Extensions\FilePond\Tests;
 
 use Yii;
 use Yii2\Extensions\FilePond\FilePond;
+use Yii2\Extensions\FilePond\Tests\Support\LogoForm;
 use Yii2\Extensions\FilePond\Tests\Support\TestForm;
 
 /**
@@ -311,6 +312,74 @@ final class RenderTest extends TestCase
             '"imageEditEditor":Yii2FilePondCropper.createEditor({"cancelLabel":"Cancel","confirmLabel":"Apply","cropperAspectRatio":"1:1"',
             $result,
         );
+    }
+
+    public function testInstantImageEditCropperTransformForLogoArrayInput(): void
+    {
+        $filePond = FilePond::widget(
+            [
+                'acceptedFileTypes' => ['image/png', 'image/jpeg', 'image/webp'],
+                'allowImageEdit' => true,
+                'allowImageTransform' => true,
+                'attribute' => 'logo_file',
+                'cropperOutputMimeType' => 'image/png',
+                'imageCropAspectRatio' => '1:1',
+                'imageEditInstantEdit' => true,
+                'model' => new LogoForm(),
+            ],
+        );
+
+        $this->assertSame(
+            '<input class="filepond" id="model-logo_file" name="Model[logo_file][]" type="file">',
+            $filePond,
+        );
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => $filePond]);
+
+        $this->assertStringContainsString('"acceptedFileTypes":["image\/png","image\/jpeg","image\/webp"]', $result);
+        $this->assertStringContainsString('"imageEditInstantEdit":true', $result);
+        $this->assertStringContainsString('"imageTransformOutputMimeType":"image\/png"', $result);
+        $this->assertStringContainsString('"imageEditEditor":Yii2FilePondCropper.createEditor(', $result);
+        $this->assertStringContainsString('FilePondPluginFileEncode', $result);
+
+        $imageEditPosition = strpos($result, 'FilePondPluginImageEdit');
+        $imageTransformPosition = strpos($result, 'FilePondPluginImageTransform');
+        $imageEditAssetPosition = strpos($result, '/dist/filepond-plugin-image-edit.js');
+        $imageTransformAssetPosition = strpos($result, '/dist/filepond-plugin-image-transform.js');
+        $cropperAssetPosition = strpos($result, '/dist/cropper.js');
+        $cropperAdapterPosition = strpos($result, '/filepond-cropper.js');
+        $inlineEditorPosition = strpos($result, 'Yii2FilePondCropper.createEditor(');
+
+        $this->assertIsInt($imageEditPosition);
+        $this->assertIsInt($imageTransformPosition);
+        $this->assertIsInt($imageEditAssetPosition);
+        $this->assertIsInt($imageTransformAssetPosition);
+        $this->assertIsInt($cropperAssetPosition);
+        $this->assertIsInt($cropperAdapterPosition);
+        $this->assertIsInt($inlineEditorPosition);
+        $this->assertLessThan($imageTransformPosition, $imageEditPosition);
+        $this->assertLessThan($imageTransformAssetPosition, $imageEditAssetPosition);
+        $this->assertLessThan($cropperAdapterPosition, $cropperAssetPosition);
+        $this->assertLessThan($inlineEditorPosition, $cropperAdapterPosition);
+        $this->assertStringNotContainsString('https://unpkg.com', $result);
+    }
+
+    public function testImageEditEditorIsCreatedWithoutImageTransform(): void
+    {
+        $filePond = FilePond::widget(
+            [
+                'allowImageEdit' => true,
+                'attribute' => 'array',
+                'model' => new TestForm(),
+            ],
+        );
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => $filePond]);
+
+        $this->assertStringContainsString('"allowImageEdit":true', $result);
+        $this->assertStringContainsString('"allowImageTransform":false', $result);
+        $this->assertStringContainsString('"imageEditEditor":Yii2FilePondCropper.createEditor(', $result);
+        $this->assertStringNotContainsString('FilePondPluginImageTransform', $result);
     }
 
     public function testMultipleWidgetsDoNotEmitCollidingConstPond(): void

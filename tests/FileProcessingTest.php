@@ -87,6 +87,36 @@ final class FileProcessingTest extends TestCase
         $this->assertSame('category.txt', $files);
     }
 
+    public function testSaveWithReturningFileUsesImageTransformOutputMimeType(): void
+    {
+        $files = FileProcessing::saveWithReturningFile(
+            [
+                0 => json_encode(
+                    [
+                        'id' => 'opqgdavos',
+                        'name' => 'logo.jpg',
+                        'type' => 'image/jpeg',
+                        'size' => 7,
+                        'metadata' => [
+                            'output' => [
+                                'type' => 'image/png',
+                            ],
+                        ],
+                        'data' => 'iVBORw0KGgo=',
+                    ],
+                    JSON_THROW_ON_ERROR,
+                ),
+            ],
+            __DIR__ . '/Support/runtime/',
+            'logo',
+            false,
+        );
+
+        $this->assertFileExists(__DIR__ . '/Support/runtime/logo.png');
+        $this->assertFileDoesNotExist(__DIR__ . '/Support/runtime/logo.jpg');
+        $this->assertSame('logo.png', $files);
+    }
+
     /**
      * @throws JsonException
      */

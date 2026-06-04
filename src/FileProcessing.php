@@ -12,6 +12,7 @@ use function is_string;
 use function json_decode;
 use function pathinfo;
 use function preg_replace;
+use function strtolower;
 
 final class FileProcessing
 {
@@ -50,7 +51,7 @@ final class FileProcessing
             }
 
             if (is_object($file) && is_string($file->data) && is_string($file->name)) {
-                $filename = self::sanitizeFilename($file->name, $newFileName);
+                $filename = self::sanitizeFilename($file->name, $newFileName, self::getOutputMimeType($file));
 
                 $result = self::writeFile($path, base64_decode($file->data), $filename);
 
@@ -63,7 +64,23 @@ final class FileProcessing
         return $savedFiles;
     }
 
-    private static function sanitizeFilename(string $filename, $newFileName): string
+    private static function getOutputMimeType(object $file): string|null
+    {
+        if (
+            isset($file->metadata) &&
+            is_object($file->metadata) &&
+            isset($file->metadata->output) &&
+            is_object($file->metadata->output) &&
+            isset($file->metadata->output->type) &&
+            is_string($file->metadata->output->type)
+        ) {
+            return $file->metadata->output->type;
+        }
+
+        return null;
+    }
+
+    private static function sanitizeFilename(string $filename, $newFileName, string|null $outputMimeType = null): string
     {
         $info = pathinfo($filename);
 
@@ -71,9 +88,24 @@ final class FileProcessing
             ? self::sanitizeFilenamePart($newFileName)
             : self::sanitizeFilenamePart($info['filename']);
 
-        $extension = isset($info['extension']) ? self::sanitizeFilenamePart($info['extension']) : '';
+        $extension = self::extensionFromMimeType($outputMimeType)
+            ?? (isset($info['extension']) ? self::sanitizeFilenamePart($info['extension']) : '');
 
         return ($name !== '' ? $name : '_') . '.' . $extension;
+    }
+
+    private static function extensionFromMimeType(string|null $mimeType): string|null
+    {
+        if ($mimeType === null) {
+            return null;
+        }
+
+        return match (strtolower($mimeType)) {
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            default => null,
+        };
     }
 
     private static function sanitizeFilenamePart(string $str): string

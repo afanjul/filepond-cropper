@@ -437,8 +437,30 @@ final class AssetTest extends TestCase
         $adapter = file_get_contents(dirname(__DIR__) . '/src/Asset/filepond-cropper/filepond-cropper.js');
 
         $this->assertIsString($adapter);
+        $loadListenerPosition = strpos($adapter, "image.addEventListener('load', initializeCropper");
+        $imageSourcePosition = strpos($adapter, 'image.src = objectUrl');
+
+        $this->assertIsInt($loadListenerPosition);
+        $this->assertIsInt($imageSourcePosition);
         $this->assertStringContainsString('$toCanvas', $adapter);
+        $this->assertStringContainsString('window.Cropper.default', $adapter);
+        $this->assertLessThan($imageSourcePosition, $loadListenerPosition);
         $this->assertStringNotContainsString('getCroppedCanvas', $adapter);
+    }
+
+    public function testFilePondCropperAdapterReturnsImageTransformMetadata(): void
+    {
+        $adapter = file_get_contents(dirname(__DIR__) . '/src/Asset/filepond-cropper/filepond-cropper.js');
+
+        $this->assertIsString($adapter);
+        $this->assertStringContainsString('editor.onconfirm({ data: buildCropData(cropper, selection, canvas) })', $adapter);
+        $this->assertStringContainsString('crop:', $adapter);
+        $this->assertStringContainsString('center: center', $adapter);
+        $this->assertStringContainsString('zoom: zoom', $adapter);
+        $this->assertStringContainsString('aspectRatio:', $adapter);
+        $this->assertStringContainsString('scaleToFit: true', $adapter);
+        $this->assertStringContainsString('size:', $adapter);
+        $this->assertStringContainsString("mode: 'contain'", $adapter);
     }
 
     public function testFilePondImageTransformPluginRegister(): void

@@ -7,6 +7,16 @@
         return Math.min(Math.max(value, min), max);
     };
 
+    var isFiniteNumber = function (value) {
+        return typeof value === 'number' && isFinite(value);
+    };
+
+    var getPositiveNumber = function (value, fallback) {
+        var number = Number(value);
+
+        return number > 0 && isFinite(number) ? number : fallback;
+    };
+
     var parseAspectRatio = function (value) {
         if (typeof value === 'number' && value > 0) {
             return value;
@@ -67,10 +77,22 @@
         return element;
     };
 
+    var getCropperConstructor = function () {
+        return typeof window.Cropper === 'function'
+            ? window.Cropper
+            : window.Cropper && typeof window.Cropper.default === 'function'
+                ? window.Cropper.default
+                : null;
+    };
+
     var buildCropData = function (cropper, selection, canvas) {
         var image = cropper.getCropperImage ? cropper.getCropperImage() : null;
         var selectionRect = selection.getBoundingClientRect();
         var imageRect = image ? image.getBoundingClientRect() : null;
+        var selectionWidth = getPositiveNumber(selection.width, selectionRect.width);
+        var selectionHeight = getPositiveNumber(selection.height, selectionRect.height);
+        var canvasWidth = getPositiveNumber(canvas.width, selectionWidth);
+        var canvasHeight = getPositiveNumber(canvas.height, selectionHeight);
         var hasRects = imageRect && imageRect.width > 0 && imageRect.height > 0 &&
             selectionRect.width > 0 && selectionRect.height > 0;
         var center = hasRects
@@ -82,9 +104,9 @@
         var zoom = hasRects
             ? Math.max(imageRect.width / selectionRect.width, imageRect.height / selectionRect.height, 1)
             : 1;
-        var aspectRatio = selectionRect.width > 0
-            ? selectionRect.height / selectionRect.width
-            : canvas.height / canvas.width;
+        var aspectRatio = selectionWidth > 0
+            ? selectionHeight / selectionWidth
+            : canvasHeight / canvasWidth;
 
         return {
             crop: {
@@ -95,13 +117,14 @@
                 },
                 zoom: zoom,
                 rotation: 0,
-                aspectRatio: aspectRatio
+                aspectRatio: isFiniteNumber(aspectRatio) && aspectRatio > 0 ? aspectRatio : null,
+                scaleToFit: true
             },
             size: {
                 upscale: false,
                 mode: 'contain',
-                width: canvas.width,
-                height: canvas.height
+                width: canvasWidth,
+                height: canvasHeight
             }
         };
     };
@@ -129,6 +152,22 @@
                 );
                 var cropper = null;
                 var closed = false;
+
+                var initializeCropper = function () {
+                    var Cropper = getCropperConstructor();
+                    var cropperOptions = Object.assign({}, settings.cropperOptions || {});
+                    var aspectRatio = parseAspectRatio(settings.cropperAspectRatio || editor.cropAspectRatio);
+
+                    if (!Cropper || cropper) {
+                        return;
+                    }
+
+                    if (!cropperOptions.template) {
+                        cropperOptions.template = createTemplate(aspectRatio);
+                    }
+
+                    cropper = new Cropper(image, cropperOptions);
+                };
 
                 var close = function () {
                     if (closed) {
@@ -160,8 +199,9 @@
                 cancelButton.type = 'button';
                 confirmButton.type = 'button';
                 image.alt = '';
-                image.src = objectUrl;
                 overlay.tabIndex = -1;
+
+                image.addEventListener('load', initializeCropper, { once: true });
 
                 footer.appendChild(cancelButton);
                 footer.appendChild(confirmButton);
@@ -172,17 +212,11 @@
                 overlay.appendChild(dialog);
                 document.body.appendChild(overlay);
                 overlay.focus();
+                image.src = objectUrl;
 
-                image.addEventListener('load', function () {
-                    var cropperOptions = Object.assign({}, settings.cropperOptions || {});
-                    var aspectRatio = parseAspectRatio(settings.cropperAspectRatio || editor.cropAspectRatio);
-
-                    if (!cropperOptions.template) {
-                        cropperOptions.template = createTemplate(aspectRatio);
-                    }
-
-                    cropper = new window.Cropper(image, cropperOptions);
-                }, { once: true });
+                if (image.complete && image.naturalWidth > 0) {
+                    initializeCropper();
+                }
 
                 cancelButton.addEventListener('click', cancel);
                 overlay.addEventListener('click', function (event) {

@@ -88,6 +88,7 @@ echo $form
             'cropperOutputMimeType' => 'image/png',
             'cropperOutputQuality' => 0.92,
             'imageCropAspectRatio' => '1:1',
+            'imageEditInstantEdit' => true,
             'maxFiles' => 1,
             'maxFileSize' => '2MB',
         ],
