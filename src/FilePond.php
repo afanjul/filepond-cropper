@@ -6,7 +6,6 @@ namespace Yii2\Extensions\FilePond;
 
 use UIAwesome\Html\{FormControl\Input\File, Helper\CssClass, Helper\Utils};
 use Yii2\Extensions\FilePond\Asset;
-use Yii2\Extensions\FilePond\Asset\{FilePondAsset, FilePondCdnAsset};
 use Yii;
 use yii\helpers\Json;
 use yii\web\JsExpression;
@@ -359,8 +358,8 @@ final class FilePond extends InputWidget
         $view = $this->getView();
 
         match ($this->cdn) {
-            true => FilePondCdnAsset::register($view),
-            default => FilePondAsset::register($view),
+            true => Asset\FilePondWidgetCdnAsset::register($view),
+            default => Asset\FilePondWidgetAsset::register($view),
         };
 
         $this->registerOptionalPluginAssets();

@@ -432,6 +432,16 @@ final class AssetTest extends TestCase
         $this->assertStringContainsString('/filepond-cropper.js', $result);
     }
 
+    public function testFilePondWidgetAssetCentersCompactDropLabel(): void
+    {
+        $asset = file_get_contents(dirname(__DIR__) . '/src/Asset/filepond-widget/filepond-widget.css');
+
+        $this->assertIsString($asset);
+        $this->assertStringContainsString('[data-style-panel-layout~="compact"] .filepond--drop-label', $asset);
+        $this->assertStringContainsString('bottom: 0', $asset);
+        $this->assertStringContainsString('height: auto', $asset);
+    }
+
     public function testFilePondCropperAdapterUsesCropperV2CanvasApi(): void
     {
         $adapter = file_get_contents(dirname(__DIR__) . '/src/Asset/filepond-cropper/filepond-cropper.js');

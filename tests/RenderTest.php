@@ -299,6 +299,7 @@ final class RenderTest extends TestCase
         $this->assertStringContainsString('FilePondPluginImageTransform', $result);
         $this->assertStringContainsString('/dist/filepond-plugin-image-edit.css', $result);
         $this->assertStringContainsString('/dist/filepond-plugin-image-edit.js', $result);
+        $this->assertStringContainsString('/filepond-widget.css', $result);
         $this->assertStringContainsString('/dist/filepond-plugin-image-transform.js', $result);
         $this->assertStringContainsString('/dist/cropper.js', $result);
         $this->assertStringContainsString('/filepond-cropper.css', $result);

@@ -1,0 +1,4 @@
+.filepond--root[data-style-panel-layout~="compact"] .filepond--drop-label {
+    bottom: 0;
+    height: auto;
+}
