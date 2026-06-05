@@ -309,7 +309,8 @@ final class RenderTest extends TestCase
         $this->assertStringContainsString('"imageTransformOutputMimeType":"image\/png"', $result);
         $this->assertStringContainsString('"imageTransformOutputQuality":92', $result);
         $this->assertStringContainsString(
-            '"imageEditEditor":Yii2FilePondCropper.createEditor({"cancelLabel":"Cancel","confirmLabel":"Apply","cropperAspectRatio":"1:1"',
+            '"imageEditEditor":Yii2FilePondCropper.createEditor({"aspectRatios":["Free","1:1","16:9","4:3","3:2"],'
+            . '"cancelLabel":"Cancel","confirmLabel":"Apply","cropperAspectRatio":"1:1"',
             $result,
         );
     }

@@ -115,6 +115,28 @@ $imageFile = FileProcessing::saveWithReturningFile(
 );        
 ```
 
+#### Server-side cropping
+
+By default the crop is rendered in the browser (Image Transform plugin) and the cropped bytes are uploaded.
+For large images, or when you do not want to trust client output, disable `allowImageTransform` so the original
+image is uploaded and let the server apply the crop. The editor always emits the selection as a source-pixel
+rectangle in `metadata.crop.rect`; `FileProcessing::saveCropped*` reads it and crops with GD (requires `ext-gd`):
+
+```php
+use Yii2\Extensions\FilePond\FileProcessing;
+
+// allowImageEdit => true, allowImageTransform => false in the widget.
+$imageFile = FileProcessing::saveCroppedWithReturningFile(
+    $categoryForm->image_file,
+    Yii::getAlias('@uploads'),
+    "category{$category->id}",
+    false
+);
+```
+
+When no rectangle is present (or GD is unavailable) the original bytes are stored unchanged. Rotation and flip
+are not applied server-side, since the editor toolbar does not expose them.
+
 ### Properties of the widget
 
 | Property                                | Type          | Description                                                                | Default                                 |
@@ -140,6 +162,11 @@ $imageFile = FileProcessing::saveWithReturningFile(
 | `cropperOutputQuality`                  | `int,float`   | Output quality, either `0..1` or `1..100`; used when transform quality is unset. | `null`                            |
 | `cropperCancelLabel`                    | `string`      | The Cropper.js cancel button label.                                        | `Cancel`                                |
 | `cropperConfirmLabel`                   | `string`      | The Cropper.js confirm button label.                                       | `Apply`                                 |
+| `cropperResetLabel`                     | `string`      | Tooltip for the crop toolbar reset button.                                 | `Reset`                                 |
+| `cropperZoomInLabel`                    | `string`      | Tooltip for the crop toolbar zoom-in button.                               | `Zoom in`                               |
+| `cropperZoomOutLabel`                   | `string`      | Tooltip for the crop toolbar zoom-out button.                              | `Zoom out`                              |
+| `cropperAspectRatios`                   | `array,false` | Aspect-ratio preset buttons (e.g. `['Free','1:1','16:9']`). `false` hides them. | `['Free','1:1','16:9','4:3','3:2']` |
+| `cropperRememberPosition`               | `bool`        | Restore the last selection (position, size, aspect) on the next open.      | `false`                                 |
 | `fileRename`                            | `string`      | The file rename.                                                           | `''`                                    |
 |                                         |               | use: `fileRenameFunction: (file) => return `my_new_name${file.extension}`; |                                         |
 | `fileValidateTypeDetectType`            | `string`      | The file validate type detect type function.                               | `''`                                    |

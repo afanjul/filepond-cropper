@@ -30,6 +30,9 @@
         "ui-awesome/html-helper": "^0.2",
         "yiisoft/yii2": "*"
     },
+    "suggest": {
+        "ext-gd": "Required by FileProcessing::saveCropped* for server-side image cropping."
+    },
     "require-dev": {
         "maglnet/composer-require-checker": "^4.6",
         "php-forge/support": "dev-main",

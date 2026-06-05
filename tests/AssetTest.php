@@ -453,7 +453,7 @@ final class AssetTest extends TestCase
         $adapter = file_get_contents(dirname(__DIR__) . '/src/Asset/filepond-cropper/filepond-cropper.js');
 
         $this->assertIsString($adapter);
-        $this->assertStringContainsString('editor.onconfirm({ data: buildCropData(cropper, selection, canvas) })', $adapter);
+        $this->assertStringContainsString('editor.onconfirm({ data: buildCropData(cropper, selection, canvas, image) })', $adapter);
         $this->assertStringContainsString('crop:', $adapter);
         $this->assertStringContainsString('center: center', $adapter);
         $this->assertStringContainsString('zoom: zoom', $adapter);

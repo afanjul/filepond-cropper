@@ -35,6 +35,22 @@ final class FilePond extends InputWidget
     public int|float|null $cropperOutputQuality = null;
     public string $cropperCancelLabel = 'Cancel';
     public string $cropperConfirmLabel = 'Apply';
+    public string $cropperResetLabel = 'Reset';
+    public string $cropperZoomInLabel = 'Zoom in';
+    public string $cropperZoomOutLabel = 'Zoom out';
+    /**
+     * @var array|false The aspect-ratio preset buttons shown in the crop toolbar.
+     *
+     * A list of strings such as `['Free', '1:1', '16:9', '4:3', '3:2']`. The label `Free` (case-insensitive)
+     * produces an unconstrained crop. Set to `false` to hide the preset buttons entirely and honor only
+     * {@see $cropperAspectRatio}. An empty array falls back to the JavaScript defaults.
+     */
+    public array|false $cropperAspectRatios = ['Free', '1:1', '16:9', '4:3', '3:2'];
+    /**
+     * @var bool Whether the crop dialog remembers the last selection (position, size and aspect ratio)
+     * and restores it the next time the same editor instance is opened.
+     */
+    public bool $cropperRememberPosition = false;
     public string $fileRename = '';
     /**
      * @var string The file validate type detect type function.
@@ -319,11 +335,16 @@ final class FilePond extends InputWidget
     {
         $cropperOptions = Json::htmlEncode(
             [
+                'aspectRatios' => $this->cropperAspectRatios,
                 'cancelLabel' => $this->cropperCancelLabel,
                 'confirmLabel' => $this->cropperConfirmLabel,
                 'cropperAspectRatio' => $this->cropperAspectRatio ?? $this->imageCropAspectRatio,
                 'cropperOptions' => $this->cropperOptions,
                 'modalTitle' => $this->cropperModalTitle,
+                'rememberCropPosition' => $this->cropperRememberPosition,
+                'resetLabel' => $this->cropperResetLabel,
+                'zoomInLabel' => $this->cropperZoomInLabel,
+                'zoomOutLabel' => $this->cropperZoomOutLabel,
             ],
         );
 

@@ -212,4 +212,153 @@ final class FileProcessingTest extends TestCase
         $this->assertFileExists(__DIR__ . '/Support/runtime/test1.txt');
         $this->assertSame(['test.txt', 'test1.txt'], $files);
     }
+
+    /**
+     * @throws JsonException
+     */
+    public function testSaveCroppedAppliesServerRectangle(): void
+    {
+        if (!function_exists('imagecreatetruecolor')) {
+            self::markTestSkipped('GD extension is required.');
+        }
+
+        $file = FileProcessing::saveCroppedWithReturningFile(
+            [
+                0 => json_encode(
+                    [
+                        'id' => 'cropme01',
+                        'name' => 'logo.png',
+                        'type' => 'image/png',
+                        'size' => 7,
+                        'metadata' => [
+                            'output' => ['type' => 'image/png'],
+                            'crop' => [
+                                'rect' => [
+                                    'x' => 8,
+                                    'y' => 6,
+                                    'width' => 20,
+                                    'height' => 10,
+                                    'naturalWidth' => 40,
+                                    'naturalHeight' => 30,
+                                ],
+                            ],
+                        ],
+                        'data' => $this->createPngBase64(40, 30),
+                    ],
+                    JSON_THROW_ON_ERROR,
+                ),
+            ],
+            __DIR__ . '/Support/runtime/',
+            'logo',
+            false,
+        );
+
+        $this->assertSame('logo.png', $file);
+
+        $size = getimagesize(__DIR__ . '/Support/runtime/logo.png');
+
+        $this->assertIsArray($size);
+        $this->assertSame(20, $size[0]);
+        $this->assertSame(10, $size[1]);
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testSaveCroppedClampsRectangleToImageBounds(): void
+    {
+        if (!function_exists('imagecreatetruecolor')) {
+            self::markTestSkipped('GD extension is required.');
+        }
+
+        $file = FileProcessing::saveCroppedWithReturningFile(
+            [
+                0 => json_encode(
+                    [
+                        'id' => 'cropme02',
+                        'name' => 'logo.png',
+                        'type' => 'image/png',
+                        'size' => 7,
+                        'metadata' => [
+                            'output' => ['type' => 'image/png'],
+                            'crop' => [
+                                'rect' => [
+                                    'x' => 30,
+                                    'y' => 20,
+                                    'width' => 40,
+                                    'height' => 40,
+                                ],
+                            ],
+                        ],
+                        'data' => $this->createPngBase64(40, 30),
+                    ],
+                    JSON_THROW_ON_ERROR,
+                ),
+            ],
+            __DIR__ . '/Support/runtime/',
+            'logo',
+            false,
+        );
+
+        $this->assertSame('logo.png', $file);
+
+        // The output keeps the requested rectangle size even when it overflows the source; the missing
+        // area is padded rather than failing.
+        $size = getimagesize(__DIR__ . '/Support/runtime/logo.png');
+
+        $this->assertIsArray($size);
+        $this->assertSame(40, $size[0]);
+        $this->assertSame(40, $size[1]);
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function testSaveCroppedWithoutRectangleStoresOriginal(): void
+    {
+        if (!function_exists('imagecreatetruecolor')) {
+            self::markTestSkipped('GD extension is required.');
+        }
+
+        $file = FileProcessing::saveCroppedWithReturningFile(
+            [
+                0 => json_encode(
+                    [
+                        'id' => 'cropme03',
+                        'name' => 'logo.png',
+                        'type' => 'image/png',
+                        'size' => 7,
+                        'metadata' => ['output' => ['type' => 'image/png']],
+                        'data' => $this->createPngBase64(40, 30),
+                    ],
+                    JSON_THROW_ON_ERROR,
+                ),
+            ],
+            __DIR__ . '/Support/runtime/',
+            'logo',
+            false,
+        );
+
+        $this->assertSame('logo.png', $file);
+
+        $size = getimagesize(__DIR__ . '/Support/runtime/logo.png');
+
+        $this->assertIsArray($size);
+        $this->assertSame(40, $size[0]);
+        $this->assertSame(30, $size[1]);
+    }
+
+    private function createPngBase64(int $width, int $height): string
+    {
+        $image = imagecreatetruecolor($width, $height);
+
+        imagefilledrectangle($image, 0, 0, $width, $height, imagecolorallocate($image, 120, 80, 200));
+
+        ob_start();
+        imagepng($image);
+        $binary = (string) ob_get_clean();
+        imagedestroy($image);
+
+        return base64_encode($binary);
+    }
 }
