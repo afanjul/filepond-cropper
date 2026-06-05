@@ -137,6 +137,30 @@ $imageFile = FileProcessing::saveCroppedWithReturningFile(
 When no rectangle is present (or GD is unavailable) the original bytes are stored unchanged. Rotation and flip
 are not applied server-side, since the editor toolbar does not expose them.
 
+#### Showing an already-uploaded image (File Poster)
+
+Enable `allowFilePoster` and seed the existing file through `files`. The File Poster plugin renders the image
+inside the item from `metadata.poster`, and `type: 'local'` marks it as already uploaded so it is not
+re-submitted. No extra CSS is required:
+
+```php
+$logoUrl = '/uploads/logo.png';
+
+echo $form->field($model, 'logo_file')->widget(FilePond::class, [
+    'allowFilePoster' => true,
+    'allowImageEdit' => true,
+    'filePosterHeight' => 122,
+    'files' => $logoUrl === null ? [] : [[
+        'source' => $logoUrl,
+        'options' => [
+            'type' => 'local',
+            'file' => ['name' => 'logo.png', 'type' => 'image/png'],
+            'metadata' => ['poster' => $logoUrl],
+        ],
+    ]],
+]);
+```
+
 ### Properties of the widget
 
 | Property                                | Type          | Description                                                                | Default                                 |
@@ -145,6 +169,7 @@ are not applied server-side, since the editor toolbar does not expose them.
 | `allowFileTypeValidation`               | `bool`        | Whether to allow file type validation.                                     | `true`                                  |
 | `allowFileRename`                       | `bool`        | Whether to allow file rename.                                              | `false`                                 |
 | `allowFileValidateSize`                 | `bool`        | Whether to allow file size validation.                                     | `true`                                  |
+| `allowFilePoster`                       | `bool`        | Whether to enable the File Poster plugin (render an image inside the item).| `false`                                 |
 | `allowImageCrop`                        | `bool`        | Whether to allow image crop.                                               | `false`                                 |
 | `allowImageEdit`                        | `bool`        | Whether to allow image editing with FilePond Image Edit and Cropper.js.    | `false`                                 |
 | `allowImageExifOrientation`             | `bool`        | Whether to allow image exif orientation.                                   | `true`                                  |   
@@ -167,6 +192,10 @@ are not applied server-side, since the editor toolbar does not expose them.
 | `cropperZoomOutLabel`                   | `string`      | Tooltip for the crop toolbar zoom-out button.                              | `Zoom out`                              |
 | `cropperAspectRatios`                   | `array,false` | Aspect-ratio preset buttons (e.g. `['Free','1:1','16:9']`). `false` hides them. | `['Free','1:1','16:9','4:3','3:2']` |
 | `cropperRememberPosition`               | `bool`        | Restore the last selection (position, size, aspect) on the next open.      | `false`                                 |
+| `files`                                 | `array`       | FilePond `files` collection used to seed already-uploaded items.           | `[]`                                    |
+| `filePosterHeight`                      | `int,null`    | Fixed file poster height in pixels; overrides min/max.                     | `null`                                  |
+| `filePosterMaxHeight`                   | `int,null`    | Maximum file poster height in pixels.                                      | `null`                                  |
+| `filePosterMinHeight`                   | `int,null`    | Minimum file poster height in pixels.                                      | `null`                                  |
 | `fileRename`                            | `string`      | The file rename.                                                           | `''`                                    |
 |                                         |               | use: `fileRenameFunction: (file) => return `my_new_name${file.extension}`; |                                         |
 | `fileValidateTypeDetectType`            | `string`      | The file validate type detect type function.                               | `''`                                    |

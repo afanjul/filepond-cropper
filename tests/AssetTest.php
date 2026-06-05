@@ -806,4 +806,48 @@ final class AssetTest extends TestCase
             $result,
         );
     }
+
+    public function testFilePondFilePosterPluginRegister(): void
+    {
+        $this->assertEmpty($this->view->assetBundles);
+
+        Asset\FilePondFilePosterPlugin::register($this->view);
+
+        $this->assertCount(1, $this->view->assetBundles);
+        $this->assertArrayHasKey(Asset\FilePondFilePosterPlugin::class, $this->view->assetBundles);
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => '']);
+
+        $this->assertStringContainsString('/dist/filepond-plugin-file-poster.css', $result);
+        $this->assertStringContainsString('/dist/filepond-plugin-file-poster.js', $result);
+    }
+
+    public function testFilePondFilePosterPluginCdnRegister(): void
+    {
+        $this->mockApplication();
+
+        $view = new View();
+
+        $this->assertEmpty($view->assetBundles);
+
+        Asset\Cdn\FilePondFilePosterPlugin::register($view);
+
+        $this->assertCount(1, $view->assetBundles);
+        $this->assertArrayHasKey(Asset\Cdn\FilePondFilePosterPlugin::class, $view->assetBundles);
+
+        $result = $view->renderFile(__DIR__ . '/Support/main.php', ['widget' => '']);
+
+        $this->assertStringContainsString(
+            <<<HTML
+            <link href="https://unpkg.com/filepond-plugin-file-poster/dist/filepond-plugin-file-poster.min.css" rel="stylesheet">
+            HTML,
+            $result,
+        );
+        $this->assertStringContainsString(
+            <<<HTML
+            <script src="https://unpkg.com/filepond-plugin-file-poster/dist/filepond-plugin-file-poster.min.js"></script>
+            HTML,
+            $result,
+        );
+    }
 }

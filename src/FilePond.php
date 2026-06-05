@@ -18,6 +18,7 @@ final class FilePond extends InputWidget
     public bool $allowFileTypeValidation = true;
     public bool $allowFileRename = false;
     public bool $allowFileValidateSize = true;
+    public bool $allowFilePoster = false;
     public bool $allowImageCrop = false;
     public bool $allowImageEdit = false;
     public bool $allowImageExifOrientation = true;
@@ -51,6 +52,34 @@ final class FilePond extends InputWidget
      * and restores it the next time the same editor instance is opened.
      */
     public bool $cropperRememberPosition = false;
+    /**
+     * @var array The FilePond `files` collection used to seed already-uploaded items.
+     *
+     * Each entry follows FilePond's native shape, for example to render an existing image as a poster
+     * without re-uploading it:
+     *
+     * ```php
+     * 'files' => [
+     *     [
+     *         'source' => $logoUrl,
+     *         'options' => [
+     *             'type' => 'local',
+     *             'metadata' => ['poster' => $logoUrl],
+     *         ],
+     *     ],
+     * ];
+     * ```
+     *
+     * @link https://pqina.nl/filepond/docs/api/plugins/file-poster/
+     */
+    public array $files = [];
+    /**
+     * @var int|null Fixed file poster height in pixels; overrides {@see $filePosterMinHeight} and
+     * {@see $filePosterMaxHeight}.
+     */
+    public int|null $filePosterHeight = null;
+    public int|null $filePosterMaxHeight = null;
+    public int|null $filePosterMinHeight = null;
     public string $fileRename = '';
     /**
      * @var string The file validate type detect type function.
@@ -210,6 +239,7 @@ final class FilePond extends InputWidget
             [
                 'acceptedFileTypes' => $this->acceptedFileTypes,
                 'allowFileRename' => $this->allowFileRename,
+                'allowFilePoster' => $this->allowFilePoster,
                 'allowFileTypeValidation' => $this->allowFileTypeValidation,
                 'allowFileValidateSize' => $this->allowFileValidateSize,
                 'allowImageCrop' => $this->allowImageCrop,
@@ -219,6 +249,9 @@ final class FilePond extends InputWidget
                 'allowImageTransform' => $this->allowImageTransform,
                 'allowMultiple' => $this->allowMultiple,
                 'className' => $this->cssClass,
+                'filePosterHeight' => $this->filePosterHeight,
+                'filePosterMaxHeight' => $this->filePosterMaxHeight,
+                'filePosterMinHeight' => $this->filePosterMinHeight,
                 'fileValidateTypeLabelExpectedTypes' => Yii::t(
                     'yii.filepond',
                     'Expects {allButLastType} or {lastType}',
@@ -267,6 +300,10 @@ final class FilePond extends InputWidget
         );
 
         $this->registerOptionalPlugins();
+
+        if ($this->files !== [] && array_key_exists('files', $this->config) === false) {
+            $this->config['files'] = $this->files;
+        }
 
         if ($this->allowImageEdit && array_key_exists('imageEditEditor', $this->config) === false) {
             $this->config['imageEditEditor'] = $this->createImageEditEditorExpression();
@@ -373,6 +410,13 @@ final class FilePond extends InputWidget
             };
         }
 
+        if ($this->allowFilePoster) {
+            match ($this->cdn) {
+                true => Asset\Cdn\FilePondFilePosterPlugin::register($view),
+                default => Asset\FilePondFilePosterPlugin::register($view),
+            };
+        }
+
         if ($this->allowImageCrop) {
             match ($this->cdn) {
                 true => Asset\Cdn\FilePondImageCropPlugin::register($view),
@@ -408,6 +452,10 @@ final class FilePond extends InputWidget
 
         if ($this->allowFileRename) {
             $plugins[] = 'FilePondPluginFileRename';
+        }
+
+        if ($this->allowFilePoster) {
+            $plugins[] = 'FilePondPluginFilePoster';
         }
 
         if ($this->allowImageCrop) {

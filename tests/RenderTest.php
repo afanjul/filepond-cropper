@@ -383,6 +383,52 @@ final class RenderTest extends TestCase
         $this->assertStringNotContainsString('FilePondPluginImageTransform', $result);
     }
 
+    public function testFilePosterPluginRegistersAndSeedsFiles(): void
+    {
+        $filePond = FilePond::widget(
+            [
+                'allowFilePoster' => true,
+                'attribute' => 'logo_file',
+                'filePosterHeight' => 122,
+                'files' => [
+                    [
+                        'source' => 'logo.png',
+                        'options' => [
+                            'type' => 'local',
+                            'metadata' => ['poster' => '/uploads/logo.png'],
+                        ],
+                    ],
+                ],
+                'model' => new LogoForm(),
+            ],
+        );
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => $filePond]);
+
+        $this->assertStringContainsString('FilePondPluginFilePoster', $result);
+        $this->assertStringContainsString('"allowFilePoster":true', $result);
+        $this->assertStringContainsString('"filePosterHeight":122', $result);
+        $this->assertStringContainsString('"files":[{"source":"logo.png"', $result);
+        $this->assertStringContainsString('"poster":"\/uploads\/logo.png"', $result);
+        $this->assertStringContainsString('/dist/filepond-plugin-file-poster.js', $result);
+    }
+
+    public function testFilePosterPluginDisabledByDefault(): void
+    {
+        $filePond = FilePond::widget(
+            [
+                'attribute' => 'array',
+                'model' => new TestForm(),
+            ],
+        );
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => $filePond]);
+
+        $this->assertStringContainsString('"allowFilePoster":false', $result);
+        $this->assertStringNotContainsString('FilePondPluginFilePoster', $result);
+        $this->assertStringNotContainsString('"files":', $result);
+    }
+
     public function testMultipleWidgetsDoNotEmitCollidingConstPond(): void
     {
         $first = FilePond::widget(['name' => 'first']);
