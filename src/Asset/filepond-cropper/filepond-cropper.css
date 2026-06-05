@@ -1,6 +1,27 @@
 .filepond-cropper {
+    /* Light theme (default). Dark overrides live below via prefers-color-scheme
+       and [data-bs-theme="dark"], so the dialog adapts standalone and follows a
+       Bootstrap 5.3 theme toggle when one is present. */
+    --fpc-overlay: rgba(18, 22, 28, 0.72);
+    --fpc-dialog-bg: #fff;
+    --fpc-text: #111827;
+    --fpc-border: #e5e7eb;
+    --fpc-checker-bg: #e9ecef;
+    --fpc-checker-square: #ced4da;
+    --fpc-control-bg: #fff;
+    --fpc-control-border: #d4dae3;
+    --fpc-control-text: #334155;
+    --fpc-control-hover-bg: #f1f5f9;
+    --fpc-control-hover-border: #94a3b8;
+    --fpc-control-hover-text: #0f172a;
+    --fpc-divider: #e2e8f0;
+    --fpc-accent: #0f766e;
+    --fpc-accent-hover: #0c5f59;
+    --fpc-accent-text: #fff;
+    --fpc-focus-ring: rgba(15, 118, 110, 0.2);
+
     align-items: center;
-    background: rgba(18, 22, 28, 0.72);
+    background: var(--fpc-overlay);
     bottom: 0;
     display: flex;
     justify-content: center;
@@ -12,10 +33,75 @@
     z-index: 10000;
 }
 
+@media (prefers-color-scheme: dark) {
+    .filepond-cropper {
+        --fpc-overlay: rgba(0, 0, 0, 0.74);
+        --fpc-dialog-bg: #21262d;
+        --fpc-text: #e6edf3;
+        --fpc-border: #30363d;
+        --fpc-checker-bg: #1c2128;
+        --fpc-checker-square: #30363d;
+        --fpc-control-bg: #2d333b;
+        --fpc-control-border: #444c56;
+        --fpc-control-text: #cdd9e5;
+        --fpc-control-hover-bg: #373e47;
+        --fpc-control-hover-border: #5a6573;
+        --fpc-control-hover-text: #fff;
+        --fpc-divider: #373e47;
+        --fpc-accent: #15a394;
+        --fpc-accent-hover: #0f8377;
+        --fpc-accent-text: #fff;
+        --fpc-focus-ring: rgba(21, 163, 148, 0.28);
+    }
+}
+
+/* Explicit Bootstrap theme attributes win over the OS preference (higher
+   specificity), so a manual app toggle always takes precedence. */
+[data-bs-theme="light"] .filepond-cropper {
+    --fpc-overlay: rgba(18, 22, 28, 0.72);
+    --fpc-dialog-bg: #fff;
+    --fpc-text: #111827;
+    --fpc-border: #e5e7eb;
+    --fpc-checker-bg: #e9ecef;
+    --fpc-checker-square: #ced4da;
+    --fpc-control-bg: #fff;
+    --fpc-control-border: #d4dae3;
+    --fpc-control-text: #334155;
+    --fpc-control-hover-bg: #f1f5f9;
+    --fpc-control-hover-border: #94a3b8;
+    --fpc-control-hover-text: #0f172a;
+    --fpc-divider: #e2e8f0;
+    --fpc-accent: #0f766e;
+    --fpc-accent-hover: #0c5f59;
+    --fpc-accent-text: #fff;
+    --fpc-focus-ring: rgba(15, 118, 110, 0.2);
+}
+
+[data-bs-theme="dark"] .filepond-cropper {
+    --fpc-overlay: rgba(0, 0, 0, 0.74);
+    --fpc-dialog-bg: #21262d;
+    --fpc-text: #e6edf3;
+    --fpc-border: #30363d;
+    --fpc-checker-bg: #1c2128;
+    --fpc-checker-square: #30363d;
+    --fpc-control-bg: #2d333b;
+    --fpc-control-border: #444c56;
+    --fpc-control-text: #cdd9e5;
+    --fpc-control-hover-bg: #373e47;
+    --fpc-control-hover-border: #5a6573;
+    --fpc-control-hover-text: #fff;
+    --fpc-divider: #373e47;
+    --fpc-accent: #15a394;
+    --fpc-accent-hover: #0f8377;
+    --fpc-accent-text: #fff;
+    --fpc-focus-ring: rgba(21, 163, 148, 0.28);
+}
+
 .filepond-cropper__dialog {
-    background: #fff;
+    background: var(--fpc-dialog-bg);
     border-radius: 10px;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+    color: var(--fpc-text);
     display: flex;
     flex-direction: column;
     max-height: min(760px, 92vh);
@@ -26,7 +112,8 @@
 
 .filepond-cropper__header {
     align-items: center;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--fpc-border);
+    color: var(--fpc-text);
     display: flex;
     font-size: 1.05rem;
     font-weight: 600;
@@ -36,11 +123,11 @@
 .filepond-cropper__body {
     align-items: center;
     background:
-        linear-gradient(45deg, #2a2f37 25%, transparent 25%),
-        linear-gradient(-45deg, #2a2f37 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #2a2f37 75%),
-        linear-gradient(-45deg, transparent 75%, #2a2f37 75%);
-    background-color: #1f242c;
+        linear-gradient(45deg, var(--fpc-checker-square) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--fpc-checker-square) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--fpc-checker-square) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--fpc-checker-square) 75%);
+    background-color: var(--fpc-checker-bg);
     background-position: 0 0, 0 10px, 10px -10px, -10px 0;
     background-size: 20px 20px;
     display: flex;
@@ -66,7 +153,7 @@
 
 .filepond-cropper__footer {
     align-items: center;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--fpc-border);
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
@@ -90,10 +177,10 @@
 
 .filepond-cropper__tool {
     align-items: center;
-    background: #fff;
-    border: 1px solid #d4dae3;
+    background: var(--fpc-control-bg);
+    border: 1px solid var(--fpc-control-border);
     border-radius: 8px;
-    color: #334155;
+    color: var(--fpc-control-text);
     cursor: pointer;
     display: inline-flex;
     height: 36px;
@@ -104,14 +191,14 @@
 }
 
 .filepond-cropper__tool:hover {
-    background: #f1f5f9;
-    border-color: #94a3b8;
-    color: #0f172a;
+    background: var(--fpc-control-hover-bg);
+    border-color: var(--fpc-control-hover-border);
+    color: var(--fpc-control-hover-text);
 }
 
 .filepond-cropper__tool:focus-visible {
-    border-color: #0f766e;
-    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.2);
+    border-color: var(--fpc-accent);
+    box-shadow: 0 0 0 3px var(--fpc-focus-ring);
     outline: none;
 }
 
@@ -125,7 +212,7 @@
 }
 
 .filepond-cropper__aspects::before {
-    background: #e2e8f0;
+    background: var(--fpc-divider);
     content: "";
     height: 24px;
     left: 0;
@@ -136,10 +223,10 @@
 }
 
 .filepond-cropper__aspect {
-    background: #fff;
-    border: 1px solid #d4dae3;
+    background: var(--fpc-control-bg);
+    border: 1px solid var(--fpc-control-border);
     border-radius: 8px;
-    color: #475569;
+    color: var(--fpc-control-text);
     cursor: pointer;
     font: inherit;
     font-size: 0.82rem;
@@ -150,28 +237,28 @@
 }
 
 .filepond-cropper__aspect:hover {
-    background: #f1f5f9;
-    border-color: #94a3b8;
-    color: #0f172a;
+    background: var(--fpc-control-hover-bg);
+    border-color: var(--fpc-control-hover-border);
+    color: var(--fpc-control-hover-text);
 }
 
 .filepond-cropper__aspect.is-active {
-    background: #0f766e;
-    border-color: #0f766e;
-    color: #fff;
+    background: var(--fpc-accent);
+    border-color: var(--fpc-accent);
+    color: var(--fpc-accent-text);
 }
 
 .filepond-cropper__aspect:focus-visible {
-    border-color: #0f766e;
-    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.2);
+    border-color: var(--fpc-accent);
+    box-shadow: 0 0 0 3px var(--fpc-focus-ring);
     outline: none;
 }
 
 .filepond-cropper__button {
-    background: #fff;
-    border: 1px solid #cbd5e1;
+    background: var(--fpc-control-bg);
+    border: 1px solid var(--fpc-control-border);
     border-radius: 8px;
-    color: #111827;
+    color: var(--fpc-text);
     cursor: pointer;
     font: inherit;
     min-height: 36px;
@@ -180,19 +267,19 @@
 }
 
 .filepond-cropper__button:hover {
-    background: #f1f5f9;
-    border-color: #94a3b8;
+    background: var(--fpc-control-hover-bg);
+    border-color: var(--fpc-control-hover-border);
 }
 
 .filepond-cropper__button--primary {
-    background: #0f766e;
-    border-color: #0f766e;
-    color: #fff;
+    background: var(--fpc-accent);
+    border-color: var(--fpc-accent);
+    color: var(--fpc-accent-text);
 }
 
 .filepond-cropper__button--primary:hover {
-    background: #0c5f59;
-    border-color: #0c5f59;
+    background: var(--fpc-accent-hover);
+    border-color: var(--fpc-accent-hover);
 }
 
 .filepond-cropper__button--primary:disabled {
