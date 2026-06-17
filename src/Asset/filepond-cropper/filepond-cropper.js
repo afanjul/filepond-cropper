@@ -201,15 +201,34 @@
             crop.rect = rect;
         }
 
-        return {
-            crop: crop,
-            size: {
+        var sizeWidth = Math.round(canvasWidth);
+        var sizeHeight = Math.round(canvasHeight);
+
+        console.debug('[filepond-cropper] buildCropData', {
+            selectionRect: { width: selectionRect.width, height: selectionRect.height, left: selectionRect.left, top: selectionRect.top },
+            imageRect: imageRect ? { width: imageRect.width, height: imageRect.height, left: imageRect.left, top: imageRect.top } : null,
+            sourceNatural: { width: sourceImage ? sourceImage.naturalWidth : null, height: sourceImage ? sourceImage.naturalHeight : null },
+            canvas: { width: canvas.width, height: canvas.height },
+            selectionWH: { width: selectionWidth, height: selectionHeight },
+            computed: { center: center, zoom: zoom, aspectRatio: crop.aspectRatio, sizeWidth: sizeWidth, sizeHeight: sizeHeight },
+            rect: rect,
+            hasRects: hasRects
+        });
+
+        var result = { crop: crop };
+
+        // Only emit a resize step when both dimensions are positive integers. A sub-pixel canvas can
+        // round to 0, which makes ImageTransform build a 0-width source and throw IndexSizeError.
+        if (sizeWidth > 0 && sizeHeight > 0) {
+            result.size = {
                 upscale: false,
                 mode: 'contain',
-                width: canvasWidth,
-                height: canvasHeight
-            }
-        };
+                width: sizeWidth,
+                height: sizeHeight
+            };
+        }
+
+        return result;
     };
 
     namespace.createEditor = function (options) {
@@ -531,12 +550,18 @@
                     captureState();
 
                     selection.$toCanvas().then(function (canvas) {
+                        console.debug('[filepond-cropper] confirm', {
+                            canvas: { width: canvas.width, height: canvas.height },
+                            image: { naturalWidth: image ? image.naturalWidth : null, naturalHeight: image ? image.naturalHeight : null }
+                        });
+
                         if (typeof editor.onconfirm === 'function') {
                             editor.onconfirm({ data: buildCropData(cropper, selection, canvas, image) });
                         }
 
                         close();
-                    }).catch(function () {
+                    }).catch(function (error) {
+                        console.debug('[filepond-cropper] $toCanvas error', error);
                         confirmButton.disabled = false;
                     });
                 });
