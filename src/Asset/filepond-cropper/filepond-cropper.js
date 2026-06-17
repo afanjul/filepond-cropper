@@ -517,16 +517,9 @@
                 });
                 resetButton.addEventListener('click', reset);
                 cancelButton.addEventListener('click', cancel);
-                overlay.addEventListener('click', function (event) {
-                    if (event.target === overlay) {
-                        cancel();
-                    }
-                });
-                overlay.addEventListener('keydown', function (event) {
-                    if (event.key === 'Escape') {
-                        cancel();
-                    }
-                });
+                // Permanent modal: dismiss only via the Cancel/Confirm buttons. Backdrop clicks and the
+                // Escape key are intentionally ignored so an accidental click outside — or a crop drag
+                // that ends over the backdrop — never closes the dialog and discards the user's edit.
                 confirmButton.addEventListener('click', function () {
                     var selection = getSelection();
 
