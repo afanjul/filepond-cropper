@@ -3,6 +3,23 @@
 
     var namespace = window.Yii2FilePondCropper = window.Yii2FilePondCropper || {};
 
+    // Lightweight debug logger. Every relevant cropper action is traced via console.debug under the
+    // '[filepond-cropper]' prefix so upload/crop/storage issues can be diagnosed from the browser console.
+    var log = function () {
+        var args = Array.prototype.slice.call(arguments);
+
+        args.unshift('[filepond-cropper]');
+        console.debug.apply(console, args);
+    };
+
+    var describeFile = function (file) {
+        if (!file) {
+            return null;
+        }
+
+        return { name: file.name, type: file.type, size: file.size };
+    };
+
     var DEFAULT_ASPECT_RATIOS = ['Free', '1:1', '16:9', '4:3', '3:2'];
 
     var ICONS = {
@@ -204,7 +221,7 @@
         var sizeWidth = Math.round(canvasWidth);
         var sizeHeight = Math.round(canvasHeight);
 
-        console.debug('[filepond-cropper] buildCropData', {
+        log('buildCropData', {
             selectionRect: { width: selectionRect.width, height: selectionRect.height, left: selectionRect.left, top: selectionRect.top },
             imageRect: imageRect ? { width: imageRect.width, height: imageRect.height, left: imageRect.left, top: imageRect.top } : null,
             sourceNatural: { width: sourceImage ? sourceImage.naturalWidth : null, height: sourceImage ? sourceImage.naturalHeight : null },
@@ -233,15 +250,31 @@
 
     namespace.createEditor = function (options) {
         var settings = options || {};
+
+        log('createEditor', {
+            cropperAspectRatio: settings.cropperAspectRatio,
+            aspectRatios: settings.aspectRatios,
+            rememberCropPosition: settings.rememberCropPosition,
+            cropperOptions: settings.cropperOptions
+        });
+
         var editor = {
             cropAspectRatio: settings.cropperAspectRatio || null,
             onconfirm: null,
             oncancel: null,
             onclose: null,
             open: function (file) {
+                log('open', { file: describeFile(file) });
+
                 var objectUrl = window.URL.createObjectURL(file);
                 var initialAspectRatio = parseAspectRatio(settings.cropperAspectRatio || editor.cropAspectRatio);
                 var aspectRatioList = buildAspectRatioList(settings.aspectRatios);
+
+                log('open: parsed config', {
+                    objectUrl: objectUrl,
+                    initialAspectRatio: initialAspectRatio,
+                    aspectRatioList: aspectRatioList
+                });
 
                 var overlay = createElement('div', 'filepond-cropper');
                 var dialog = createElement('div', 'filepond-cropper__dialog');
@@ -298,6 +331,13 @@
                             height: selection.height / canvasHeight,
                             aspectRatio: selection.aspectRatio
                         };
+
+                        log('captureState', editor._lastSelection);
+                    } else {
+                        log('captureState: skipped (non-positive canvas/selection)', {
+                            canvasWidth: canvasWidth, canvasHeight: canvasHeight,
+                            selectionWidth: selection.width, selectionHeight: selection.height
+                        });
                     }
                 };
 
@@ -330,6 +370,8 @@
                         selection.aspectRatio = state.aspectRatio;
                     }
 
+                    log('restoreState', { x: x, y: y, width: width, height: height, aspectRatio: state.aspectRatio });
+
                     selection.$change(x, y, width, height);
                 };
 
@@ -343,9 +385,12 @@
                 };
 
                 var applyAspectRatio = function (value, button) {
+                    log('applyAspectRatio', { value: value, label: button ? button.textContent : null });
+
                     var selection = getSelection();
 
                     if (!selection) {
+                        log('applyAspectRatio: no selection');
                         return;
                     }
 
@@ -359,14 +404,20 @@
                 };
 
                 var zoomBy = function (step) {
+                    log('zoomBy', { step: step });
+
                     var cropperImage = getImage();
 
                     if (cropperImage && typeof cropperImage.$zoom === 'function') {
                         cropperImage.$zoom(step);
+                    } else {
+                        log('zoomBy: no cropper image / $zoom unavailable');
                     }
                 };
 
                 var reset = function () {
+                    log('reset');
+
                     var cropperImage = getImage();
 
                     if (cropperImage) {
@@ -402,6 +453,7 @@
                     var cropperOptions = Object.assign({}, settings.cropperOptions || {});
 
                     if (!Cropper || cropper) {
+                        log('initializeCropper: skipped', { hasCropperConstructor: !!Cropper, alreadyInitialized: !!cropper });
                         return;
                     }
 
@@ -409,18 +461,27 @@
                         cropperOptions.template = createTemplate(initialAspectRatio);
                     }
 
+                    log('initializeCropper', {
+                        imageNatural: { width: image.naturalWidth, height: image.naturalHeight },
+                        initialAspectRatio: initialAspectRatio
+                    });
+
                     cropper = new Cropper(image, cropperOptions);
 
                     var cropperImage = getImage();
 
                     if (cropperImage && typeof cropperImage.$ready === 'function') {
                         cropperImage.$ready(function () {
+                            log('cropper ready');
+
                             if (typeof cropperImage.$center === 'function') {
                                 cropperImage.$center('contain');
                             }
 
                             restoreState();
                         });
+                    } else {
+                        log('initializeCropper: cropper image / $ready unavailable', { hasCropperImage: !!cropperImage });
                     }
 
                     if (initialAspectRatio) {
@@ -442,6 +503,8 @@
                         return;
                     }
 
+                    log('close');
+
                     closed = true;
 
                     if (cropper && cropper.destroy) {
@@ -457,6 +520,8 @@
                 };
 
                 var cancel = function () {
+                    log('cancel');
+
                     captureState();
 
                     if (typeof editor.oncancel === 'function') {
@@ -509,7 +574,13 @@
                 image.alt = '';
                 overlay.tabIndex = -1;
 
-                image.addEventListener('load', initializeCropper, { once: true });
+                image.addEventListener('load', function () {
+                    log('image load', { naturalWidth: image.naturalWidth, naturalHeight: image.naturalHeight });
+                    initializeCropper();
+                }, { once: true });
+                image.addEventListener('error', function (event) {
+                    log('image load error', event);
+                });
 
                 actions.appendChild(cancelButton);
                 actions.appendChild(confirmButton);
@@ -540,9 +611,12 @@
                 // Escape key are intentionally ignored so an accidental click outside — or a crop drag
                 // that ends over the backdrop — never closes the dialog and discards the user's edit.
                 confirmButton.addEventListener('click', function () {
+                    log('confirm: clicked');
+
                     var selection = getSelection();
 
                     if (!selection || !selection.$toCanvas) {
+                        log('confirm: aborted (no selection / $toCanvas unavailable)');
                         return;
                     }
 
@@ -550,18 +624,22 @@
                     captureState();
 
                     selection.$toCanvas().then(function (canvas) {
-                        console.debug('[filepond-cropper] confirm', {
+                        log('confirm: $toCanvas resolved', {
                             canvas: { width: canvas.width, height: canvas.height },
                             image: { naturalWidth: image ? image.naturalWidth : null, naturalHeight: image ? image.naturalHeight : null }
                         });
 
+                        var data = buildCropData(cropper, selection, canvas, image);
+
+                        log('confirm: dispatching onconfirm', { data: data });
+
                         if (typeof editor.onconfirm === 'function') {
-                            editor.onconfirm({ data: buildCropData(cropper, selection, canvas, image) });
+                            editor.onconfirm({ data: data });
                         }
 
                         close();
                     }).catch(function (error) {
-                        console.debug('[filepond-cropper] $toCanvas error', error);
+                        log('confirm: $toCanvas error', error);
                         confirmButton.disabled = false;
                     });
                 });

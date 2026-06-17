@@ -345,9 +345,75 @@ final class FilePond extends InputWidget
         $mergeInlineOptions
         var loadFileDefault = $loadFileDefault
         var filePondInput = document.getElementById($id)
+        console.debug('[filepond:' + $id + '] create', { options: filePondOptions, plugins: '$pluginConfig' })
         var pond = FilePond.create(filePondInput, filePondOptions)
 
+        // Trace every FilePond lifecycle event via console.debug so upload/transform/storage issues
+        // (e.g. S3) can be diagnosed from the browser console. File objects are summarized to their
+        // relevant fields including metadata (crop rect, output type) and the file-encode payload size.
+        ;(function (pond, inputId) {
+            var tag = '[filepond:' + inputId + ']'
+
+            var describeFile = function (file) {
+                if (!file || typeof file !== 'object') {
+                    return file
+                }
+
+                var encodeLength = null
+
+                if (typeof file.getFileEncodeBase64String === 'function') {
+                    try {
+                        encodeLength = (file.getFileEncodeBase64String() || '').length
+                    } catch (error) {
+                        encodeLength = 'error: ' + error
+                    }
+                }
+
+                return {
+                    id: file.id,
+                    filename: file.filename,
+                    fileType: file.fileType,
+                    fileSize: file.fileSize,
+                    origin: file.origin,
+                    serverId: file.serverId,
+                    status: file.status,
+                    metadata: typeof file.getMetadata === 'function' ? file.getMetadata() : null,
+                    encodeBase64Length: encodeLength
+                }
+            }
+
+            var summarize = function (value) {
+                if (Array.isArray(value)) {
+                    return value.map(summarize)
+                }
+
+                if (value && typeof value === 'object' && typeof value.filename === 'string' && 'status' in value) {
+                    return describeFile(value)
+                }
+
+                if (typeof Blob !== 'undefined' && value instanceof Blob) {
+                    return { blob: true, type: value.type, size: value.size }
+                }
+
+                return value
+            }
+
+            var events = [
+                'init', 'warning', 'error', 'initfile', 'addfilestart', 'addfileprogress',
+                'addfile', 'preparefile', 'processfilestart', 'processfileprogress',
+                'processfileabort', 'processfilerevert', 'processfile', 'processfiles',
+                'removefile', 'updatefiles', 'activatefile'
+            ]
+
+            events.forEach(function (name) {
+                pond.on(name, function () {
+                    console.debug(tag + ' ' + name, Array.prototype.slice.call(arguments).map(summarize))
+                })
+            })
+        })(pond, $id)
+
         if (loadFileDefault !== '') {
+            console.debug('[filepond:' + $id + '] addFiles(loadFileDefault)', loadFileDefault)
             pond.addFiles(loadFileDefault)
         }
         JS;
