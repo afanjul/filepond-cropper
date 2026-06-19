@@ -190,20 +190,32 @@
         var canvasHeight = getPositiveNumber(canvas.height, selectionHeight);
         var hasRects = imageRect && imageRect.width > 0 && imageRect.height > 0 &&
             selectionRect.width > 0 && selectionRect.height > 0;
-        var center = hasRects
-            ? {
-                x: clamp(((selectionRect.left + selectionRect.width * 0.5) - imageRect.left) / imageRect.width, 0, 1),
-                y: clamp(((selectionRect.top + selectionRect.height * 0.5) - imageRect.top) / imageRect.height, 0, 1)
-            }
-            : { x: 0.5, y: 0.5 };
-        var aspectRatio = selectionWidth > 0
-            ? selectionHeight / selectionWidth
-            : canvasHeight / canvasWidth;
-
-        // Source-pixel rectangle for server-side cropping. Rides along in `metadata.crop.rect`
-        // (FilePond ImageEdit copies `data.crop` verbatim). The client-side ImageTransform plugin
-        // ignores this extra key, so it is harmless when transforms run in the browser.
+        // Source-pixel rectangle for the selection. When present it drives center, aspectRatio AND
+        // zoom so every crop parameter shares ONE coordinate space (source pixels). Deriving
+        // aspectRatio from the screen-space selectionRect (letterboxed + sub-pixel rounded) while
+        // deriving zoom from source pixels makes FilePond's contain-baseline diverge from the real
+        // selection: on a wide image a near-full-width crop then loses a few pixels per edge.
+        // Also rides along verbatim in `metadata.crop.rect` for server-side cropping (ImageEdit
+        // copies `data.crop`; the client ImageTransform plugin ignores the extra key).
         var rect = hasRects ? buildSourceRect(selectionRect, imageRect, sourceImage) : null;
+        var hasRect = rect && rect.width > 0 && rect.height > 0;
+
+        var center = hasRect
+            ? {
+                x: clamp((rect.x + rect.width * 0.5) / rect.naturalWidth, 0, 1),
+                y: clamp((rect.y + rect.height * 0.5) / rect.naturalHeight, 0, 1)
+            }
+            : hasRects
+                ? {
+                    x: clamp(((selectionRect.left + selectionRect.width * 0.5) - imageRect.left) / imageRect.width, 0, 1),
+                    y: clamp(((selectionRect.top + selectionRect.height * 0.5) - imageRect.top) / imageRect.height, 0, 1)
+                }
+                : { x: 0.5, y: 0.5 };
+        var aspectRatio = hasRect
+            ? rect.height / rect.width
+            : selectionWidth > 0
+                ? selectionHeight / selectionWidth
+                : canvasHeight / canvasWidth;
 
         // FilePond's crop `zoom` is relative to the contain-fit rectangle of the crop's aspect ratio
         // *inside the source image*, NOT the full image. Deriving zoom from the displayed image vs
@@ -212,7 +224,7 @@
         // so the same selection maps to a larger zoom factor and FilePond crops in further than the
         // user selected. Compute zoom against the true contain baseline.
         var zoom = 1;
-        if (rect && rect.width > 0 && rect.height > 0 && isFiniteNumber(aspectRatio) && aspectRatio > 0) {
+        if (hasRect && isFiniteNumber(aspectRatio) && aspectRatio > 0) {
             var baseWidth = rect.naturalWidth;
             var baseHeight = baseWidth * aspectRatio;
             if (baseHeight > rect.naturalHeight) {
@@ -244,8 +256,10 @@
             crop.rect = rect;
         }
 
-        var sizeWidth = Math.round(canvasWidth);
-        var sizeHeight = Math.round(canvasHeight);
+        // Output at full source resolution and at the rect's exact aspect ratio so the resize step
+        // matches the crop AR (no letterbox) and never downsamples to the on-screen preview size.
+        var sizeWidth = Math.round(hasRect ? rect.width : canvasWidth);
+        var sizeHeight = Math.round(hasRect ? rect.height : canvasHeight);
 
         log('buildCropData', {
             selectionRect: { width: selectionRect.width, height: selectionRect.height, left: selectionRect.left, top: selectionRect.top },
