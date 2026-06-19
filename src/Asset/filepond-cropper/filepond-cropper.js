@@ -93,7 +93,12 @@
             '<cropper-image rotatable scalable skewable translatable initial-center-size="contain"></cropper-image>' +
             '<cropper-shade hidden></cropper-shade>' +
             '<cropper-handle action="select" plain></cropper-handle>' +
-            '<cropper-selection initial-coverage="0.8" movable resizable' + ratio + '>' +
+            // `precise` keeps sub-pixel selection coordinates. Without it Cropper.js rounds x/y/size on
+            // every pointermove (CropperSelection.$change) and resets the pointer origin per event, so a
+            // slow drag whose per-event delta is < ~1px rounds to zero and the remainder is discarded —
+            // the box stalls until the pointer moves fast enough. Storing fractional values lets those
+            // small deltas accumulate, so the selection tracks the cursor smoothly at any speed.
+            '<cropper-selection initial-coverage="0.8" movable resizable precise' + ratio + '>' +
             '<cropper-grid role="grid" covered></cropper-grid>' +
             '<cropper-crosshair centered></cropper-crosshair>' +
             '<cropper-handle action="move" theme-color="rgba(255,255,255,0.35)"></cropper-handle>' +
