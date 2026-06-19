@@ -196,12 +196,34 @@
                 y: clamp(((selectionRect.top + selectionRect.height * 0.5) - imageRect.top) / imageRect.height, 0, 1)
             }
             : { x: 0.5, y: 0.5 };
-        var zoom = hasRects
-            ? Math.max(imageRect.width / selectionRect.width, imageRect.height / selectionRect.height, 1)
-            : 1;
         var aspectRatio = selectionWidth > 0
             ? selectionHeight / selectionWidth
             : canvasHeight / canvasWidth;
+
+        // Source-pixel rectangle for server-side cropping. Rides along in `metadata.crop.rect`
+        // (FilePond ImageEdit copies `data.crop` verbatim). The client-side ImageTransform plugin
+        // ignores this extra key, so it is harmless when transforms run in the browser.
+        var rect = hasRects ? buildSourceRect(selectionRect, imageRect, sourceImage) : null;
+
+        // FilePond's crop `zoom` is relative to the contain-fit rectangle of the crop's aspect ratio
+        // *inside the source image*, NOT the full image. Deriving zoom from the displayed image vs
+        // selection ratio over-zooms whenever the crop aspect ratio differs from the image aspect
+        // ratio (e.g. a 1:1 crop on a wide logo): the baseline is then narrower than the full image,
+        // so the same selection maps to a larger zoom factor and FilePond crops in further than the
+        // user selected. Compute zoom against the true contain baseline.
+        var zoom = 1;
+        if (rect && rect.width > 0 && rect.height > 0 && isFiniteNumber(aspectRatio) && aspectRatio > 0) {
+            var baseWidth = rect.naturalWidth;
+            var baseHeight = baseWidth * aspectRatio;
+            if (baseHeight > rect.naturalHeight) {
+                baseHeight = rect.naturalHeight;
+                baseWidth = baseHeight / aspectRatio;
+            }
+            zoom = Math.max(baseWidth / rect.width, 1);
+        } else if (hasRects) {
+            zoom = Math.max(imageRect.width / selectionRect.width, imageRect.height / selectionRect.height, 1);
+        }
+
         var crop = {
             center: center,
             flip: {
@@ -211,13 +233,12 @@
             zoom: zoom,
             rotation: 0,
             aspectRatio: isFiniteNumber(aspectRatio) && aspectRatio > 0 ? aspectRatio : null,
-            scaleToFit: true
+            // Our selection is always clamped within the source image (Cropper.js bounds + buildSourceRect
+            // clamp), so FilePond's edge-fitting guard is unnecessary and actively harmful: with an
+            // off-center focal point it shrinks/repositions the crop (output no longer matches the
+            // selection). Disabling it makes the center/zoom map to the exact selected rectangle.
+            scaleToFit: false
         };
-
-        // Source-pixel rectangle for server-side cropping. Rides along in `metadata.crop.rect`
-        // (FilePond ImageEdit copies `data.crop` verbatim). The client-side ImageTransform plugin
-        // ignores this extra key, so it is harmless when transforms run in the browser.
-        var rect = hasRects ? buildSourceRect(selectionRect, imageRect, sourceImage) : null;
 
         if (rect) {
             crop.rect = rect;
