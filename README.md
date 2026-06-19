@@ -196,6 +196,7 @@ echo $form->field($model, 'logo_file')->widget(FilePond::class, [
 | `filePosterHeight`                      | `int,null`    | Fixed file poster height in pixels; overrides min/max.                     | `null`                                  |
 | `filePosterMaxHeight`                   | `int,null`    | Maximum file poster height in pixels.                                      | `null`                                  |
 | `filePosterMinHeight`                   | `int,null`    | Minimum file poster height in pixels.                                      | `null`                                  |
+| `filePosterObjectFit`                   | `string,null` | Poster image fit: `'cover'` (fill+crop), `'contain'` (fit inside), `null`. | `null`                                  |
 | `fileRename`                            | `string`      | The file rename.                                                           | `''`                                    |
 |                                         |               | use: `fileRenameFunction: (file) => return `my_new_name${file.extension}`; |                                         |
 | `fileValidateTypeDetectType`            | `string`      | The file validate type detect type function.                               | `''`                                    |

@@ -414,6 +414,51 @@ final class RenderTest extends TestCase
         $this->assertStringContainsString('/dist/filepond-plugin-file-poster.js', $result);
     }
 
+    public function testFilePosterObjectFitStampsRootAttribute(): void
+    {
+        $filePond = FilePond::widget(
+            [
+                'allowFilePoster' => true,
+                'attribute' => 'logo_file',
+                'filePosterObjectFit' => 'cover',
+                'model' => new LogoForm(),
+            ],
+        );
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => $filePond]);
+
+        $this->assertStringContainsString('pond.element.setAttribute("data-filepond-poster-fit", "cover")', $result);
+    }
+
+    public function testFilePosterObjectFitOmittedByDefault(): void
+    {
+        $filePond = FilePond::widget(
+            [
+                'attribute' => 'array',
+                'model' => new TestForm(),
+            ],
+        );
+
+        $result = $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => $filePond]);
+
+        $this->assertStringNotContainsString('data-filepond-poster-fit', $result);
+    }
+
+    public function testFilePosterObjectFitRejectsInvalidValue(): void
+    {
+        $this->expectException(\yii\base\InvalidConfigException::class);
+
+        $filePond = FilePond::widget(
+            [
+                'attribute' => 'array',
+                'filePosterObjectFit' => 'stretch',
+                'model' => new TestForm(),
+            ],
+        );
+
+        $this->view->renderFile(__DIR__ . '/Support/main.php', ['widget' => $filePond]);
+    }
+
     public function testFilePosterPluginDisabledByDefault(): void
     {
         $filePond = FilePond::widget(

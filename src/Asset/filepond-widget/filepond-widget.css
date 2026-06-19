@@ -2,3 +2,30 @@
     bottom: 0;
     height: auto;
 }
+
+/*
+ * File-poster fit control (FilePond::$filePosterObjectFit). The file-poster plugin renders the poster
+ * <img> with inline height/width + a centering transform and offers no fit option, so these rules
+ * override that inline style (hence !important) gated by the data attribute the widget stamps on the
+ * pond root. `cover` fills and crops the box; `contain` fits the whole image inside it (letterboxed).
+ */
+.filepond--root[data-filepond-poster-fit] .filepond--file-poster img {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+}
+
+.filepond--root[data-filepond-poster-fit="cover"] .filepond--file-poster img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+.filepond--root[data-filepond-poster-fit="contain"] .filepond--file-poster img {
+    width: auto !important;
+    height: auto !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+}
